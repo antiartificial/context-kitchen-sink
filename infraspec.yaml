@@ -1,0 +1,26 @@
+name: context-kitchen-sink
+deploy: true
+
+build:
+  dockerfile: Dockerfile
+
+processes:
+  web:
+    port: 8080
+    command: ./playground
+    health:
+      path: /api/auth/check
+    scaling:
+      min: 1
+    resources:
+      cpu: 200
+      memory: 256
+
+secrets:
+  - PLAYGROUND_PASSWORD
+
+env:
+  PLAYGROUND_PASSWORD: contextdb
+
+endpoints:
+  - url: https://playground.slopistry.com

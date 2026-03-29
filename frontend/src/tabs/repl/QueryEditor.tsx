@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { api } from '../../api';
 
 interface QueryEditorProps {
@@ -39,8 +39,8 @@ export function QueryEditor({
     parseTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await api.post<{ valid: boolean; ast: object; error?: string }>(
-          '/api/repl/parse',
-          { query: value, syntax }
+          '/repl/parse',
+          { query: normalizeSingleLine(value), syntax }
         );
         setIsValid(response.valid);
         setParseError(response.error || null);
@@ -69,6 +69,9 @@ export function QueryEditor({
     if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
       onExecute();
+    } else if (e.key === 'Tab' && e.shiftKey) {
+      e.preventDefault();
+      handleFormat();
     } else if (e.key === 'Tab') {
       e.preventDefault();
       const start = e.currentTarget.selectionStart;
@@ -82,6 +85,12 @@ export function QueryEditor({
       }, 0);
     }
   };
+
+  const handleFormat = useCallback(() => {
+    if (!value.trim()) return;
+    const formatted = syntax === 'pipe' ? formatPipe(value) : formatCQL(value);
+    onChange(formatted);
+  }, [value, syntax, onChange]);
 
   const highlightedCode = syntax === 'pipe' ? highlightPipe(value) : highlightCQL(value);
   const lineCount = value.split('\n').length;
@@ -98,8 +107,8 @@ export function QueryEditor({
 
   const placeholder =
     syntax === 'pipe'
-      ? 'search "quantum computing" | where confidence > 0.7 | score belief | limit 10'
-      : 'SELECT * FROM repl WHERE similarity("quantum computing") > 0.3 ORDER BY confidence DESC LIMIT 10';
+      ? 'search "quantum computing" | where confidence > 0.7 | weight recency:high | top 10'
+      : 'FIND "quantum computing" WHERE confidence > 0.7 WEIGHT recency=high LIMIT 10';
 
   return (
     <div className="p-4">
@@ -127,6 +136,15 @@ export function QueryEditor({
             CQL
           </button>
         </div>
+
+        <button
+          onClick={handleFormat}
+          disabled={!value.trim()}
+          className="px-3 py-1.5 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Format query (Shift+Tab)"
+        >
+          Format
+        </button>
 
         {isValid !== null && (
           <div className="flex items-center gap-2 text-sm">
@@ -208,155 +226,326 @@ export function QueryEditor({
   );
 }
 
-// Pipe syntax highlighter
-function highlightPipe(code: string): string {
-  if (!code) return '';
+// ── Shared tokenizer ──────────────────────────────────────────────
 
-  const keywords = [
-    'search',
-    'where',
-    'score',
-    'limit',
-    'graph',
-    'rerank',
-    'return',
-    'as_of',
-    'known_at',
-    'exclude_sources',
-  ];
-  const operators = ['>=', '<=', '!=', '>', '<', '=', 'between', 'and', 'in'];
-  const fields = [
-    'confidence',
-    'recency',
-    'labels',
-    'source',
-    'similarity',
-    'utility',
-    'type',
-  ];
-  const scorePresets = ['belief', 'agent', 'balanced', 'procedural'];
-
-  let highlighted = code;
-
-  // Comments (// or #)
-  highlighted = highlighted.replace(/(\/\/.*|#.*)/g, '<span class="text-gray-500">$1</span>');
-
-  // String literals
-  highlighted = highlighted.replace(
-    /"([^"]*)"/g,
-    '<span class="text-green-400">"$1"</span>'
-  );
-
-  // Numbers
-  highlighted = highlighted.replace(/\b(\d+\.?\d*[a-z]*)\b/gi, (match) => {
-    if (keywords.includes(match.toLowerCase()) || fields.includes(match.toLowerCase())) {
-      return match;
-    }
-    return `<span class="text-orange-400">${match}</span>`;
-  });
-
-  // Pipe separator
-  highlighted = highlighted.replace(/\|/g, '<span class="text-white font-bold">|</span>');
-
-  // Keywords
-  keywords.forEach((kw) => {
-    const regex = new RegExp(`\\b(${kw})\\b`, 'gi');
-    highlighted = highlighted.replace(
-      regex,
-      '<span class="text-purple-400 font-bold">$1</span>'
-    );
-  });
-
-  // Operators
-  operators.forEach((op) => {
-    const escaped = op.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b(${escaped})\\b`, 'gi');
-    highlighted = highlighted.replace(regex, '<span class="text-cyan-400">$1</span>');
-  });
-
-  // Fields
-  fields.forEach((field) => {
-    const regex = new RegExp(`\\b(${field})\\b`, 'gi');
-    highlighted = highlighted.replace(regex, '<span class="text-blue-400">$1</span>');
-  });
-
-  // Score presets
-  scorePresets.forEach((preset) => {
-    const regex = new RegExp(`\\b(${preset})\\b`, 'gi');
-    highlighted = highlighted.replace(
-      regex,
-      '<span class="text-yellow-400 italic">$1</span>'
-    );
-  });
-
-  return highlighted;
+interface Token {
+  type: 'keyword' | 'operator' | 'field' | 'preset' | 'string' | 'number' | 'pipe' | 'comment' | 'paren' | 'bracket' | 'comma' | 'text' | 'function';
+  value: string;
 }
 
-// CQL syntax highlighter
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+const PIPE_KEYWORDS = new Set([
+  'search', 'where', 'weight', 'top', 'expand', 'rerank',
+  'return', 'in', 'as', 'of', 'known', 'at', 'mode', 'depth', 'ago',
+]);
+const PIPE_OPERATORS = new Set(['>=', '<=', '!=', '>', '<', '=', 'between', 'and']);
+const PIPE_FIELDS = new Set([
+  'confidence', 'recency', 'labels', 'source', 'similarity', 'utility',
+  'valid_time', 'valid_until',
+]);
+const PIPE_PRESETS = new Set(['high', 'medium', 'low', 'off']);
+
+function tokenizePipe(code: string): Token[] {
+  const tokens: Token[] = [];
+  let i = 0;
+
+  while (i < code.length) {
+    // Comments
+    if (code[i] === '/' && code[i + 1] === '/' || code[i] === '#') {
+      const end = code.indexOf('\n', i);
+      const comment = end === -1 ? code.slice(i) : code.slice(i, end);
+      tokens.push({ type: 'comment', value: comment });
+      i += comment.length;
+      continue;
+    }
+
+    // Strings (double-quoted)
+    if (code[i] === '"') {
+      let j = i + 1;
+      while (j < code.length && code[j] !== '"') j++;
+      tokens.push({ type: 'string', value: code.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+
+    // Pipe
+    if (code[i] === '|') {
+      tokens.push({ type: 'pipe', value: '|' });
+      i++;
+      continue;
+    }
+
+    // Brackets / parens / commas / colon
+    if (code[i] === '[' || code[i] === ']') {
+      tokens.push({ type: 'bracket', value: code[i] });
+      i++;
+      continue;
+    }
+    if (code[i] === '(' || code[i] === ')') {
+      tokens.push({ type: 'paren', value: code[i] });
+      i++;
+      continue;
+    }
+    if (code[i] === ',') {
+      tokens.push({ type: 'comma', value: ',' });
+      i++;
+      continue;
+    }
+    if (code[i] === ':') {
+      tokens.push({ type: 'paren', value: ':' });
+      i++;
+      continue;
+    }
+
+    // Multi-char operators
+    if (i + 1 < code.length && PIPE_OPERATORS.has(code.slice(i, i + 2))) {
+      tokens.push({ type: 'operator', value: code.slice(i, i + 2) });
+      i += 2;
+      continue;
+    }
+    // Single-char operators
+    if (PIPE_OPERATORS.has(code[i])) {
+      tokens.push({ type: 'operator', value: code[i] });
+      i++;
+      continue;
+    }
+
+    // Whitespace
+    if (/\s/.test(code[i])) {
+      let j = i;
+      while (j < code.length && /\s/.test(code[j])) j++;
+      tokens.push({ type: 'text', value: code.slice(i, j) });
+      i = j;
+      continue;
+    }
+
+    // Words and numbers
+    if (/[\w.]/.test(code[i])) {
+      let j = i;
+      while (j < code.length && /[\w.\-]/.test(code[j])) j++;
+      const word = code.slice(i, j);
+      const lower = word.toLowerCase();
+
+      if (PIPE_KEYWORDS.has(lower)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else if (PIPE_OPERATORS.has(lower)) {
+        tokens.push({ type: 'operator', value: word });
+      } else if (PIPE_FIELDS.has(lower)) {
+        tokens.push({ type: 'field', value: word });
+      } else if (PIPE_PRESETS.has(lower)) {
+        tokens.push({ type: 'preset', value: word });
+      } else if (/^\d/.test(word)) {
+        tokens.push({ type: 'number', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      i = j;
+      continue;
+    }
+
+    // Fallback
+    tokens.push({ type: 'text', value: code[i] });
+    i++;
+  }
+
+  return tokens;
+}
+
+const CQL_KEYWORDS = new Set([
+  'find', 'where', 'follow', 'weight', 'limit', 'rerank', 'return',
+  'in', 'namespace', 'as', 'of', 'known', 'at', 'mode',
+  'exclude', 'sources', 'depth', 'with',
+]);
+const CQL_OPERATORS = new Set(['and', 'or', 'not', 'like', 'between', 'in', 'is', 'null']);
+const CQL_FIELDS = new Set([
+  'confidence', 'recency', 'labels', 'source', 'similarity', 'utility',
+  'valid_time', 'valid_until', 'label',
+]);
+const CQL_PRESETS = new Set(['high', 'medium', 'low', 'off']);
+
+function tokenizeCQL(code: string): Token[] {
+  const tokens: Token[] = [];
+  let i = 0;
+
+  while (i < code.length) {
+    // Comments
+    if (code[i] === '-' && code[i + 1] === '-') {
+      const end = code.indexOf('\n', i);
+      const comment = end === -1 ? code.slice(i) : code.slice(i, end);
+      tokens.push({ type: 'comment', value: comment });
+      i += comment.length;
+      continue;
+    }
+
+    // Strings (single or double quoted)
+    if (code[i] === '"' || code[i] === "'") {
+      const quote = code[i];
+      let j = i + 1;
+      while (j < code.length && code[j] !== quote) j++;
+      tokens.push({ type: 'string', value: code.slice(i, j + 1) });
+      i = j + 1;
+      continue;
+    }
+
+    // Pipe
+    if (code[i] === '|') {
+      tokens.push({ type: 'pipe', value: '|' });
+      i++;
+      continue;
+    }
+
+    if (code[i] === '(' || code[i] === ')') {
+      tokens.push({ type: 'paren', value: code[i] });
+      i++;
+      continue;
+    }
+    if (code[i] === ',') {
+      tokens.push({ type: 'comma', value: ',' });
+      i++;
+      continue;
+    }
+
+    // Multi-char operators (>=, <=, !=)
+    if (i + 1 < code.length && ['>=', '<=', '!='].includes(code.slice(i, i + 2))) {
+      tokens.push({ type: 'operator', value: code.slice(i, i + 2) });
+      i += 2;
+      continue;
+    }
+    if ('><*='.includes(code[i])) {
+      tokens.push({ type: 'operator', value: code[i] });
+      i++;
+      continue;
+    }
+
+    // Whitespace
+    if (/\s/.test(code[i])) {
+      let j = i;
+      while (j < code.length && /\s/.test(code[j])) j++;
+      tokens.push({ type: 'text', value: code.slice(i, j) });
+      i = j;
+      continue;
+    }
+
+    // Words and numbers
+    if (/[\w.]/.test(code[i])) {
+      let j = i;
+      while (j < code.length && /[\w.\-:]/.test(code[j])) j++;
+      const word = code.slice(i, j);
+      const lower = word.toLowerCase();
+
+      if (CQL_KEYWORDS.has(lower)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else if (CQL_OPERATORS.has(lower)) {
+        tokens.push({ type: 'operator', value: word });
+      } else if (CQL_FIELDS.has(lower)) {
+        tokens.push({ type: 'field', value: word });
+      } else if (CQL_PRESETS.has(lower)) {
+        tokens.push({ type: 'preset', value: word });
+      } else if (/^\d/.test(word)) {
+        tokens.push({ type: 'number', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      i = j;
+      continue;
+    }
+
+    tokens.push({ type: 'text', value: code[i] });
+    i++;
+  }
+
+  return tokens;
+}
+
+// ── Renderers ─────────────────────────────────────────────────────
+
+const STYLE: Record<Token['type'], string> = {
+  keyword:  'text-purple-400 font-bold',
+  operator: 'text-cyan-400',
+  field:    'text-blue-400',
+  preset:   'text-yellow-400 italic',
+  string:   'text-green-400',
+  number:   'text-orange-400',
+  pipe:     'text-white font-bold',
+  comment:  'text-gray-500',
+  function: 'text-yellow-400',
+  paren:    'text-gray-300',
+  bracket:  'text-gray-300',
+  comma:    'text-gray-300',
+  text:     'text-gray-200',
+};
+
+function renderTokens(tokens: Token[]): string {
+  return tokens
+    .map((t) => {
+      const cls = STYLE[t.type];
+      const escaped = escapeHtml(t.value);
+      return cls ? `<span class="${cls}">${escaped}</span>` : escaped;
+    })
+    .join('');
+}
+
+function highlightPipe(code: string): string {
+  if (!code) return '';
+  return renderTokens(tokenizePipe(code));
+}
+
 function highlightCQL(code: string): string {
   if (!code) return '';
+  return renderTokens(tokenizeCQL(code));
+}
 
-  const keywords = [
-    'SELECT',
-    'FROM',
-    'WHERE',
-    'ORDER BY',
-    'LIMIT',
-    'GRAPH',
-    'EDGES',
-    'RERANK',
-    'SCORE',
-    'USING',
-    'WITHIN',
-    'NAMESPACE',
-    'AS_OF',
-    'KNOWN_AT',
-    'DESC',
-    'ASC',
-    'DEPTH',
-  ];
-  const operators = ['AND', 'OR', 'NOT', 'LIKE', 'BETWEEN', 'IN', 'IS', 'NULL'];
-  const functions = ['similarity', 'confidence', 'recency', 'utility'];
+// ── Prettifier ────────────────────────────────────────────────────
 
-  let highlighted = code;
+// Collapse a query to a single line with normalized whitespace.
+// The backend parser doesn't support multi-line pipe queries,
+// so we always send a single-line version for parse/execute.
+export function normalizeSingleLine(code: string): string {
+  return code.replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
-  // Comments (--)
-  highlighted = highlighted.replace(/(--.*)/g, '<span class="text-gray-500">$1</span>');
+export function formatPipe(code: string): string {
+  // Normalize first, then re-tokenize for clean formatting
+  const flat = normalizeSingleLine(code);
+  const tokens = tokenizePipe(flat);
+  const out: string[] = [];
 
-  // String literals
-  highlighted = highlighted.replace(
-    /('([^']*)'|"([^"]*)")/g,
-    '<span class="text-green-400">$1</span>'
-  );
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
 
-  // Numbers
-  highlighted = highlighted.replace(/\b(\d+\.?\d*)\b/g, (match) => {
-    return `<span class="text-orange-400">${match}</span>`;
-  });
+    if (t.type === 'pipe') {
+      // Trim trailing whitespace before pipe
+      while (out.length > 0 && out[out.length - 1].match(/^\s+$/)) out.pop();
+      out.push(' | ');
+      // Skip whitespace after pipe
+      while (i + 1 < tokens.length && tokens[i + 1].type === 'text' && tokens[i + 1].value.trim() === '') i++;
+      continue;
+    }
 
-  // Keywords
-  keywords.forEach((kw) => {
-    const regex = new RegExp(`\\b(${kw})\\b`, 'gi');
-    highlighted = highlighted.replace(
-      regex,
-      '<span class="text-purple-400 font-bold">$1</span>'
-    );
-  });
+    out.push(t.value);
+  }
 
-  // Operators
-  operators.forEach((op) => {
-    const regex = new RegExp(`\\b(${op})\\b`, 'gi');
-    highlighted = highlighted.replace(regex, '<span class="text-cyan-400">$1</span>');
-  });
+  return out.join('').trim();
+}
 
-  // Functions
-  functions.forEach((fn) => {
-    const regex = new RegExp(`\\b(${fn})\\s*\\(`, 'gi');
-    highlighted = highlighted.replace(
-      regex,
-      '<span class="text-yellow-400">$1</span>('
-    );
-  });
+export function formatCQL(code: string): string {
+  const flat = normalizeSingleLine(code);
+  const tokens = tokenizeCQL(flat);
+  const out: string[] = [];
 
-  return highlighted;
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+
+    if (t.type === 'keyword') {
+      out.push(t.value.toUpperCase());
+      continue;
+    }
+
+    out.push(t.value);
+  }
+
+  return out.join('').trim();
 }

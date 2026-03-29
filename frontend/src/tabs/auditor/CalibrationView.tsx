@@ -81,7 +81,7 @@ export default function CalibrationView() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Sample Count</span>
               <span className="text-lg font-semibold text-gray-100">
-                {result.sample_count.toLocaleString()}
+                {(result.sample_count || 0).toLocaleString()}
               </span>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function CalibrationView() {
           )}
 
           {/* Platt scaler info */}
-          {result.platt.fitted && (
+          {result.platt?.fitted && (
             <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
               <h4 className="text-lg font-semibold text-gray-100 mb-4">
                 Platt Scaler Parameters
@@ -123,7 +123,7 @@ export default function CalibrationView() {
           )}
 
           {/* Isotonic info */}
-          {result.isotonic.fitted && (
+          {result.isotonic?.fitted && (
             <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-green-500" />

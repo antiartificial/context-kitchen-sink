@@ -9,18 +9,15 @@ import NoiseButton from "./NoiseButton";
 export default function AgentTab() {
   const [hoursAgo, setHoursAgo] = useState(0);
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [timeline, setTimeline] = useState<TimelinePoint[]>([]);
+  const [_timeline, setTimeline] = useState<TimelinePoint[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch timeline data once on mount
   useEffect(() => {
     const fetchTimeline = async () => {
       try {
-        const data = await api.get<{ points: TimelinePoint[] }>(
-          "/agent/timeline"
-        );
+        const data = await api.get<{ points: TimelinePoint[] }>("/agent/timeline");
         setTimeline(data.points);
       } catch (err) {
         console.error("Failed to fetch timeline:", err);
@@ -29,7 +26,6 @@ export default function AgentTab() {
     fetchTimeline();
   }, []);
 
-  // Fetch memories whenever hoursAgo or searchQuery changes
   useEffect(() => {
     const fetchMemories = async () => {
       setIsLoading(true);
@@ -53,11 +49,10 @@ export default function AgentTab() {
     setIsResetting(true);
     try {
       await api.post("/agent/reset");
-      // Refetch data
       setHoursAgo(0);
       setSearchQuery("");
       const [timelineData, memoriesData] = await Promise.all([
-        api.get<{ points: TimelinePoint[] }>("agent/timeline"),
+        api.get<{ points: TimelinePoint[] }>("/agent/timeline"),
         api.get<{ memories: Memory[] }>("/agent/memories?as_of=" + new Date().toISOString()),
       ]);
       setTimeline(timelineData.points);
@@ -70,7 +65,6 @@ export default function AgentTab() {
   };
 
   const handleInject = async () => {
-    // Refetch memories after injection
     const asOf = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
     const queryParam = searchQuery ? `&query=${encodeURIComponent(searchQuery)}` : "";
     try {
@@ -83,43 +77,68 @@ export default function AgentTab() {
     }
   };
 
+  const epCount = memories.filter((m) => m.mem_type === "episodic").length;
+  const semCount = memories.filter((m) => m.mem_type === "semantic").length;
+  const procCount = memories.filter((m) => m.mem_type === "procedural").length;
+  const wkCount = memories.filter((m) => m.mem_type === "working").length;
+  const avgScore = memories.length > 0
+    ? (memories.reduce((sum, m) => sum + m.score, 0) / memories.length).toFixed(3)
+    : "0.000";
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Synopsis */}
+      <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3">
+        <p className="text-sm text-gray-400">
+          <span className="text-gray-200 font-medium">Temporal memory decay visualization.</span>{" "}
+          18 memories across 4 types simulate an AI agent's refactor task. Use the time slider to
+          observe how working memory decays fastest, episodic fades over days, while semantic and
+          procedural persist. Inject noise to see how low-confidence memories compete for retrieval.
+        </p>
+      </div>
+
+      {/* Header + stats row */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-100">Agent Memory</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            Temporal memory decay across episodic, semantic, procedural, and working memory
-          </p>
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-bold text-gray-100">Agent Memory</h2>
+          <div className="hidden sm:flex items-center gap-3 text-xs">
+            <span className="text-gray-500">{memories.length} total</span>
+            <span className="text-blue-400">{epCount} ep</span>
+            <span className="text-green-400">{semCount} sem</span>
+            <span className="text-purple-400">{procCount} proc</span>
+            <span className="text-orange-400">{wkCount} wk</span>
+            <span className="text-gray-500">avg {avgScore}</span>
+          </div>
         </div>
         <button
           onClick={handleReset}
           disabled={isResetting}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
+          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
         >
           {isResetting ? "Resetting..." : "Reset"}
         </button>
       </div>
 
-      {/* Time Slider */}
-      <TimeSlider value={hoursAgo} onChange={setHoursAgo} />
-
-      {/* Search Box */}
-      <div className="bg-gray-900 rounded-lg p-4">
-        <input
-          type="text"
-          placeholder="Search memories by content..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      {/* Time Slider + Search in row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <TimeSlider value={hoursAgo} onChange={setHoursAgo} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Search memories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <NoiseButton onInject={handleInject} />
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Memory Timeline */}
-        <div className="space-y-4">
+      {/* Main content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
           {isLoading ? (
             <div className="bg-gray-900 rounded-lg p-8 text-center text-gray-400">
               Loading memories...
@@ -128,63 +147,8 @@ export default function AgentTab() {
             <MemoryTimeline memories={memories} />
           )}
         </div>
-
-        {/* Right Column - Decay Chart + Noise Button */}
-        <div className="space-y-4">
+        <div>
           <DecayChart currentHoursAgo={hoursAgo} />
-          <NoiseButton onInject={handleInject} />
-
-          {/* Timeline Stats */}
-          {timeline.length > 0 && (
-            <div className="bg-gray-900 rounded-lg p-4 space-y-2">
-              <h3 className="text-sm font-medium text-gray-300 mb-3">
-                Memory Statistics
-              </h3>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-gray-500">Total Memories:</span>
-                  <span className="text-gray-200 ml-2 font-medium">
-                    {memories.length}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Episodic:</span>
-                  <span className="text-blue-400 ml-2 font-medium">
-                    {memories.filter((m) => m.mem_type === "episodic").length}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Semantic:</span>
-                  <span className="text-green-400 ml-2 font-medium">
-                    {memories.filter((m) => m.mem_type === "semantic").length}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Procedural:</span>
-                  <span className="text-purple-400 ml-2 font-medium">
-                    {memories.filter((m) => m.mem_type === "procedural").length}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Working:</span>
-                  <span className="text-orange-400 ml-2 font-medium">
-                    {memories.filter((m) => m.mem_type === "working").length}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Avg Score:</span>
-                  <span className="text-gray-200 ml-2 font-medium">
-                    {memories.length > 0
-                      ? (
-                          memories.reduce((sum, m) => sum + m.score, 0) /
-                          memories.length
-                        ).toFixed(3)
-                      : "0.000"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

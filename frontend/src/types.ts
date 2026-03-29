@@ -142,15 +142,11 @@ export interface ErasureReport {
 }
 
 export interface AcquisitionSuggestion {
-  query: string;
+  type: string;
   priority: number;
-  expected_value: number;
-  reason: string;
-  gap_types: string[];
-  type?: string;
-  description?: string;
-  related_node_ids?: string[];
-  namespace?: string;
+  description: string;
+  related_node_ids: string[];
+  namespace: string;
 }
 
 // Auditor-specific types

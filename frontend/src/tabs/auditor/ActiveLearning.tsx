@@ -12,10 +12,10 @@ export default function ActiveLearning() {
   const handleGetSuggestions = async () => {
     setLoading(true);
     try {
-      const data = await api.get<{ suggestions: AcquisitionSuggestion[] }>(
+      const data = await api.get<AcquisitionSuggestion[]>(
         `/auditor/active-learning?budget=${budget}`
       );
-      setSuggestions(data.suggestions);
+      setSuggestions(data);
     } catch (err) {
       console.error("Failed to get suggestions:", err);
     } finally {
@@ -147,17 +147,8 @@ function SuggestionCard({
   getTypeColor,
   getTypeLabel,
 }: SuggestionCardProps) {
-  // Use either the new 'type' field or fall back to deriving from gap_types
-  const suggestionType =
-    suggestion.type ||
-    (suggestion.gap_types && suggestion.gap_types[0]) ||
-    "unknown";
-
-  // Use either new 'description' field or fall back to 'reason' or 'query'
-  const description =
-    suggestion.description || suggestion.reason || suggestion.query || "No description available";
-
-  // Get related node IDs
+  const suggestionType = suggestion.type || "unknown";
+  const description = suggestion.description || "No description available";
   const relatedNodeIds = suggestion.related_node_ids || [];
   const namespace = suggestion.namespace;
 
@@ -197,15 +188,6 @@ function SuggestionCard({
 
           {/* Metadata */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-            {suggestion.expected_value !== undefined && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-gray-400">Expected Value:</span>
-                <span className="text-[#6366f1] font-medium">
-                  {(suggestion.expected_value * 100).toFixed(1)}%
-                </span>
-              </div>
-            )}
-
             {relatedNodeIds.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <span className="text-gray-400">Related Nodes:</span>
@@ -222,21 +204,6 @@ function SuggestionCard({
               </div>
             )}
 
-            {suggestion.gap_types && suggestion.gap_types.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-gray-400">Gap Types:</span>
-                <div className="flex flex-wrap gap-1">
-                  {suggestion.gap_types.map((gapType, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-0.5 rounded text-xs bg-gray-800/50 text-gray-300"
-                    >
-                      {gapType}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Related node IDs (collapsible if many) */}

@@ -7,19 +7,28 @@ interface TimeSliderProps {
 
 const TICK_MARKS = [0, 24, 48, 72, 96, 120, 144, 168];
 
-function formatTimeAgo(hours: number): string {
-  if (hours === 0) return "Now";
-  if (hours < 24) {
-    return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
-  }
-  const days = Math.floor(hours / 24);
-  const remainingHours = hours % 24;
-  if (remainingHours === 0) {
-    return days === 1 ? "1 day ago" : `${days} days ago`;
-  }
-  return days === 1
-    ? `1 day, ${remainingHours}h ago`
-    : `${days} days, ${remainingHours}h ago`;
+function formatTimestamp(hoursAgo: number): string {
+  if (hoursAgo === 0) return "Now";
+  const date = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  if (isToday) return `Today ${time}`;
+  if (isYesterday) return `Yesterday ${time}`;
+
+  return date.toLocaleDateString([], { month: "short", day: "numeric" }) + ` ${time}`;
+}
+
+function formatTickLabel(hoursAgo: number): string {
+  if (hoursAgo === 0) return "Now";
+  if (hoursAgo < 24) return `${hoursAgo}h`;
+  const days = hoursAgo / 24;
+  return `${days}d`;
 }
 
 export default function TimeSlider({ value, onChange }: TimeSliderProps) {
@@ -48,7 +57,9 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
         <label className="text-sm font-medium text-gray-300">
           Time Travel
         </label>
-        <span className="text-sm text-gray-400">{formatTimeAgo(localValue)}</span>
+        <span className="text-sm text-gray-400 font-mono">
+          {formatTimestamp(localValue)}
+        </span>
       </div>
 
       <div className="relative">
@@ -70,7 +81,7 @@ export default function TimeSlider({ value, onChange }: TimeSliderProps) {
             <div key={tick} className="flex flex-col items-center">
               <div className="w-px h-2 bg-gray-700" />
               <span className="text-xs text-gray-500 mt-1">
-                {tick === 0 ? "Now" : `${tick}h`}
+                {formatTickLabel(tick)}
               </span>
             </div>
           ))}

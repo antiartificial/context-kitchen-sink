@@ -6,8 +6,8 @@ build:
 
 processes:
   web:
-    port: 8080
-    command: ./playground
+    port: 8091
+    command: ./playground -addr :8091
     health:
       path: /api/auth/check
     scaling:

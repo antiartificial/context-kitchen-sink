@@ -35,13 +35,10 @@ func (s *Server) handleAuditorNodes(w http.ResponseWriter, r *http.Request) {
 	result := make([]nodeResponse, 0, len(nodes))
 	for _, node := range nodes {
 		content := advanced.NodeText(node)
-
-		// Extract source_id from properties
 		sourceID := ""
 		if sid, ok := node.Properties["source_id"].(string); ok {
 			sourceID = sid
 		}
-
 		result = append(result, nodeResponse{
 			ID:            node.ID.String(),
 			Content:       content,
@@ -53,8 +50,8 @@ func (s *Server) handleAuditorNodes(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	_ = vecs // silence unused warning if needed
-	writeJSON(w, 200, result)
+	_ = vecs
+	writeJSON(w, 200, map[string]any{"nodes": result})
 }
 
 // handleAuditorNarrative handles POST /api/auditor/narrative
@@ -83,7 +80,41 @@ func (s *Server) handleAuditorNarrative(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	writeJSON(w, 200, report)
+	type citedClaimJSON struct {
+		NodeID          string  `json:"node_id"`
+		SourceID        string  `json:"source_id"`
+		Text            string  `json:"text"`
+		Confidence      float64 `json:"confidence"`
+		Relation        string  `json:"relation"`
+		ProvenanceDepth int     `json:"provenance_depth,omitempty"`
+	}
+	mapClaim := func(c advanced.CitedClaim) citedClaimJSON {
+		return citedClaimJSON{
+			NodeID:          c.NodeID.String(),
+			SourceID:        c.SourceID,
+			Text:            c.Text,
+			Confidence:      c.Confidence,
+			Relation:        c.Relation,
+			ProvenanceDepth: c.ProvenanceDepth,
+		}
+	}
+	mapClaims := func(cs []advanced.CitedClaim) []citedClaimJSON {
+		out := make([]citedClaimJSON, 0, len(cs))
+		for _, c := range cs {
+			out = append(out, mapClaim(c))
+		}
+		return out
+	}
+
+	writeJSON(w, 200, map[string]any{
+		"node_id":                report.NodeID.String(),
+		"summary":                report.Summary,
+		"claim":                  mapClaim(report.Claim),
+		"evidence":               mapClaims(report.Evidence),
+		"contradictions":         mapClaims(report.Contradictions),
+		"provenance":             mapClaims(report.Provenance),
+		"confidence_explanation": report.ConfidenceExplanation,
+	})
 }
 
 // handleAuditorBeliefDiff handles POST /api/auditor/belief-diff
@@ -118,58 +149,48 @@ func (s *Server) handleAuditorBeliefDiff(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Enrich conflicts with node content
+	type claimSide struct {
+		NodeID         string  `json:"node_id"`
+		Content        string  `json:"content"`
+		Confidence     float64 `json:"confidence"`
+		SourceID       string  `json:"source_id"`
+		SupporterCount int     `json:"supporter_count"`
+	}
 	type enrichedConflict struct {
-		ClaimA struct {
-			NodeID         string  `json:"node_id"`
-			Text           string  `json:"text"`
-			Confidence     float64 `json:"confidence"`
-			SourceID       string  `json:"source_id"`
-			SupporterCount int     `json:"supporter_count"`
-		} `json:"claim_a"`
-		ClaimB struct {
-			NodeID         string  `json:"node_id"`
-			Text           string  `json:"text"`
-			Confidence     float64 `json:"confidence"`
-			SourceID       string  `json:"source_id"`
-			SupporterCount int     `json:"supporter_count"`
-		} `json:"claim_b"`
-		ContradictionWeight float64 `json:"contradiction_weight"`
-		CredibilityGap      float64 `json:"credibility_gap"`
+		ClaimA              claimSide `json:"claim_a"`
+		ClaimB              claimSide `json:"claim_b"`
+		ContradictionWeight float64   `json:"contradiction_weight"`
+		CredibilityGap      float64   `json:"credibility_gap"`
 	}
 
 	enriched := make([]enrichedConflict, 0, len(diff.Conflicts))
 	for _, conflict := range diff.Conflicts {
-		textA := advanced.NodeText(conflict.ClaimA.Node)
-		textB := advanced.NodeText(conflict.ClaimB.Node)
-
-		ec := enrichedConflict{
+		enriched = append(enriched, enrichedConflict{
+			ClaimA: claimSide{
+				NodeID:         conflict.ClaimA.Node.ID.String(),
+				Content:        advanced.NodeText(conflict.ClaimA.Node),
+				Confidence:     conflict.ClaimA.Confidence,
+				SourceID:       conflict.ClaimA.SourceID,
+				SupporterCount: conflict.ClaimA.SupporterCount,
+			},
+			ClaimB: claimSide{
+				NodeID:         conflict.ClaimB.Node.ID.String(),
+				Content:        advanced.NodeText(conflict.ClaimB.Node),
+				Confidence:     conflict.ClaimB.Confidence,
+				SourceID:       conflict.ClaimB.SourceID,
+				SupporterCount: conflict.ClaimB.SupporterCount,
+			},
 			ContradictionWeight: conflict.ContradictionWeight,
 			CredibilityGap:      conflict.CredibilityGap,
-		}
-		ec.ClaimA.NodeID = conflict.ClaimA.Node.ID.String()
-		ec.ClaimA.Text = textA
-		ec.ClaimA.Confidence = conflict.ClaimA.Confidence
-		ec.ClaimA.SourceID = conflict.ClaimA.SourceID
-		ec.ClaimA.SupporterCount = conflict.ClaimA.SupporterCount
-
-		ec.ClaimB.NodeID = conflict.ClaimB.Node.ID.String()
-		ec.ClaimB.Text = textB
-		ec.ClaimB.Confidence = conflict.ClaimB.Confidence
-		ec.ClaimB.SourceID = conflict.ClaimB.SourceID
-		ec.ClaimB.SupporterCount = conflict.ClaimB.SupporterCount
-
-		enriched = append(enriched, ec)
+		})
 	}
 
-	result := map[string]interface{}{
+	writeJSON(w, 200, map[string]any{
 		"namespace":           diff.Namespace,
 		"conflicts":           enriched,
 		"total_conflicts":     diff.TotalConflicts,
 		"avg_credibility_gap": diff.AvgCredibilityGap,
-	}
-
-	writeJSON(w, 200, result)
+	})
 }
 
 // handleAuditorKnowledgeGaps handles POST /api/auditor/knowledge-gaps
@@ -187,7 +208,6 @@ func (s *Server) handleAuditorKnowledgeGaps(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Set defaults
 	if req.TopK == 0 {
 		req.TopK = 10
 	}
@@ -206,7 +226,6 @@ func (s *Server) handleAuditorKnowledgeGaps(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Get total nodes for coverage calculation
 	nodes, err := graph.ValidAt(ctx, "auditor", time.Now(), nil)
 	if err != nil {
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
@@ -214,7 +233,33 @@ func (s *Server) handleAuditorKnowledgeGaps(w http.ResponseWriter, r *http.Reque
 	}
 
 	report := advanced.BuildGapReport("auditor", gaps, len(nodes))
-	writeJSON(w, 200, report)
+
+	// Map to snake_case
+	type gapJSON struct {
+		ID                string   `json:"id"`
+		NearestTopics     []string `json:"nearest_topics"`
+		DensityScore      float64  `json:"density_score"`
+		ConfidenceGap     float64  `json:"confidence_gap"`
+		TemporalGapSecs   float64  `json:"temporal_gap_seconds"`
+	}
+	gapsOut := make([]gapJSON, 0, len(report.Gaps))
+	for _, g := range report.Gaps {
+		gapsOut = append(gapsOut, gapJSON{
+			ID:              g.ID.String(),
+			NearestTopics:   g.NearestTopics,
+			DensityScore:    g.DensityScore,
+			ConfidenceGap:   g.ConfidenceGap,
+			TemporalGapSecs: g.TemporalGap.Seconds(),
+		})
+	}
+
+	writeJSON(w, 200, map[string]any{
+		"namespace":      report.Namespace,
+		"gaps":           gapsOut,
+		"coverage_score": report.CoverageScore,
+		"total_nodes":    report.TotalNodes,
+		"gaps_detected":  report.GapsDetected,
+	})
 }
 
 // handleAuditorCalibration handles POST /api/auditor/calibration
@@ -228,7 +273,6 @@ func (s *Server) handleAuditorCalibration(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Extract prediction outcomes from nodes
 	outcomes := make([]advanced.PredictionOutcome, 0)
 	for _, node := range nodes {
 		if predMap, ok := node.Properties["prediction_outcome"].(map[string]interface{}); ok {
@@ -244,37 +288,34 @@ func (s *Server) handleAuditorCalibration(w http.ResponseWriter, r *http.Request
 	}
 
 	if len(outcomes) == 0 {
-		writeJSON(w, 200, map[string]interface{}{
-			"message":     "no prediction outcomes found",
-			"total_nodes": len(nodes),
-			"brier_score": 0,
-			"ece":         0,
-			"mce":         0,
-			"bins":        []interface{}{},
+		writeJSON(w, 200, map[string]any{
+			"brier_score":  0.0,
+			"ece":          0.0,
+			"mce":          0.0,
+			"bins":         []any{},
+			"platt":        map[string]any{"a": 0.0, "b": 0.0, "fitted": false},
+			"isotonic":     map[string]any{"fitted": false},
+			"sample_count": 0,
 		})
 		return
 	}
 
-	// Compute calibration metrics
 	brierScore := advanced.BrierScore(outcomes)
 	ece := advanced.ExpectedCalibrationError(outcomes, 10)
 	mce := advanced.MaxCalibrationError(outcomes, 10)
 
-	// Fit calibrators
 	platt := &advanced.PlattScaler{}
 	platt.Fit(outcomes, 10)
 
 	iso := &advanced.IsotonicRegressor{}
 	iso.Fit(outcomes)
 
-	// Build bins manually (10 bins)
 	type binData struct {
-		BinStart       float64 `json:"bin_start"`
-		BinEnd         float64 `json:"bin_end"`
-		AvgPredicted   float64 `json:"avg_predicted"`
-		AvgActual      float64 `json:"avg_actual"`
-		Count          int     `json:"count"`
-		CalibrationErr float64 `json:"calibration_err"`
+		BinStart     float64 `json:"bin_start"`
+		BinEnd       float64 `json:"bin_end"`
+		AvgPredicted float64 `json:"avg_predicted"`
+		AvgActual    float64 `json:"avg_actual"`
+		Count        int     `json:"count"`
 	}
 
 	binSize := 0.1
@@ -298,24 +339,18 @@ func (s *Server) handleAuditorCalibration(w http.ResponseWriter, r *http.Request
 		if bins[i].Count > 0 {
 			bins[i].AvgPredicted /= float64(bins[i].Count)
 			bins[i].AvgActual /= float64(bins[i].Count)
-			bins[i].CalibrationErr = bins[i].AvgPredicted - bins[i].AvgActual
-			if bins[i].CalibrationErr < 0 {
-				bins[i].CalibrationErr = -bins[i].CalibrationErr
-			}
 		}
 	}
 
-	result := map[string]interface{}{
-		"total_predictions": len(outcomes),
-		"brier_score":       brierScore,
-		"ece":               ece,
-		"mce":               mce,
-		"bins":              bins,
-		"platt_fitted":      platt != nil,
-		"isotonic_fitted":   iso != nil,
-	}
-
-	writeJSON(w, 200, result)
+	writeJSON(w, 200, map[string]any{
+		"brier_score":  brierScore,
+		"ece":          ece,
+		"mce":          mce,
+		"bins":         bins,
+		"platt":        map[string]any{"a": platt.A, "b": platt.B, "fitted": true},
+		"isotonic":     map[string]any{"fitted": true},
+		"sample_count": len(outcomes),
+	})
 }
 
 // handleAuditorRetract handles POST /api/auditor/retract
@@ -344,7 +379,16 @@ func (s *Server) handleAuditorRetract(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, 200, result)
+	nodeIDs := make([]string, 0, len(result.NodeIDs))
+	for _, id := range result.NodeIDs {
+		nodeIDs = append(nodeIDs, id.String())
+	}
+
+	writeJSON(w, 200, map[string]any{
+		"nodes_retracted": result.NodesRetracted,
+		"cascade_depth":   result.CascadeDepth,
+		"node_ids":        nodeIDs,
+	})
 }
 
 // handleAuditorGDPRErase handles POST /api/auditor/gdpr-erase
@@ -377,7 +421,14 @@ func (s *Server) handleAuditorGDPRErase(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	writeJSON(w, 200, report)
+	writeJSON(w, 200, map[string]any{
+		"namespace":          report.Namespace,
+		"source_id":          report.SourceID,
+		"nodes_retracted":    report.NodesRetracted,
+		"vectors_deleted":    report.VectorsDeleted,
+		"edges_invalidated":  report.EdgesInvalidated,
+		"events_redacted":    report.EventsRedacted,
+	})
 }
 
 // handleAuditorActiveLearning handles GET /api/auditor/active-learning
@@ -401,7 +452,30 @@ func (s *Server) handleAuditorActiveLearning(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	writeJSON(w, 200, suggestions)
+	type suggestionJSON struct {
+		Type           string   `json:"type"`
+		Priority       float64  `json:"priority"`
+		Description    string   `json:"description"`
+		RelatedNodeIDs []string `json:"related_node_ids"`
+		Namespace      string   `json:"namespace"`
+	}
+
+	out := make([]suggestionJSON, 0, len(suggestions))
+	for _, s := range suggestions {
+		ids := make([]string, 0, len(s.RelatedNodeIDs))
+		for _, id := range s.RelatedNodeIDs {
+			ids = append(ids, id.String())
+		}
+		out = append(out, suggestionJSON{
+			Type:           string(s.Type),
+			Priority:       s.Priority,
+			Description:    s.Description,
+			RelatedNodeIDs: ids,
+			Namespace:      s.Namespace,
+		})
+	}
+
+	writeJSON(w, 200, out)
 }
 
 // handleAuditorReset handles POST /api/auditor/reset
@@ -409,14 +483,12 @@ func (s *Server) handleAuditorReset(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	graph, _, _, _ := s.db.Stores()
 
-	// Get all sources in the namespace
 	nodes, err := graph.ValidAt(ctx, "auditor", time.Now(), nil)
 	if err != nil {
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
 		return
 	}
 
-	// Collect unique source IDs from properties
 	sourceMap := make(map[string]bool)
 	for _, node := range nodes {
 		if sid, ok := node.Properties["source_id"].(string); ok && sid != "" {
@@ -424,7 +496,6 @@ func (s *Server) handleAuditorReset(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Retract all sources
 	retractor := advanced.NewBulkRetractor(graph)
 	for sourceID := range sourceMap {
 		_, err := retractor.RetractBySource(ctx, "auditor", sourceID, "reset")
@@ -434,7 +505,6 @@ func (s *Server) handleAuditorReset(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Re-seed
 	if err := seed.SeedAuditor(s.db); err != nil {
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
 		return

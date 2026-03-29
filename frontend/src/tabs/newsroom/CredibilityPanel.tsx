@@ -16,34 +16,28 @@ export default function CredibilityPanel({ sources }: CredibilityPanelProps) {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-gray-100 mb-4">
-        Credibility Comparison
-      </h3>
-      <div className="space-y-4">
-        {sortedSources.map((source) => (
-          <div key={source.id}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-300">
-                {source.external_id || source.id}
-              </span>
-              <span className="text-sm font-semibold text-gray-100">
-                {(source.credibility * 100).toFixed(1)}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full ${getBarColor(source.credibility)} transition-all duration-300`}
-                style={{ width: `${source.credibility * 100}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
-              <span>α={source.alpha.toFixed(1)}</span>
-              <span>β={source.beta.toFixed(1)}</span>
-            </div>
+    <div className="space-y-3">
+      <h4 className="text-sm font-semibold text-gray-300">Credibility</h4>
+      {sortedSources.map((source) => (
+        <div key={source.id}>
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="text-gray-300 truncate">{source.external_id || source.id}</span>
+            <span className="text-gray-200 font-mono tabular-nums">
+              {(source.credibility * 100).toFixed(1)}%
+            </span>
           </div>
-        ))}
-      </div>
+          <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+            <div
+              className={`h-2 rounded-full bar-animated ${getBarColor(source.credibility)}`}
+              style={{ width: `${source.credibility * 100}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
+            <span>a={source.alpha.toFixed(1)} b={source.beta.toFixed(1)}</span>
+            <span>[{(source.interval_lower * 100).toFixed(0)}-{(source.interval_upper * 100).toFixed(0)}%]</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

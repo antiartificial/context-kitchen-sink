@@ -194,15 +194,23 @@ func (s *Server) handleNewsroomValidate(w http.ResponseWriter, r *http.Request) 
 func (s *Server) handleNewsroomClaims(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	ns := s.db.Namespace("newsroom", advanced.ModeBeliefSystem)
+	graph, _, _, _ := s.db.Stores()
 
-	// Retrieve all nodes (use high TopK to get everything)
-	results, err := ns.Retrieve(ctx, client.RetrieveRequest{
-		TopK: 100,
-	})
+	// List all valid nodes in the newsroom namespace
+	nodes, err := graph.ValidAt(ctx, "newsroom", time.Now(), nil)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// Wrap nodes as results
+	results := make([]client.Result, 0, len(nodes))
+	for _, node := range nodes {
+		results = append(results, client.Result{
+			Node:            node,
+			Score:           node.Confidence,
+			ConfidenceScore: node.Confidence,
+		})
 	}
 
 	// Build response

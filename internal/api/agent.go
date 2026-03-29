@@ -31,29 +31,44 @@ func (s *Server) handleAgentMemories(w http.ResponseWriter, r *http.Request) {
 		asOf = parsed
 	}
 
-	// Build retrieve request
-	req := client.RetrieveRequest{
-		TopK: 50,
-		AsOf: asOf,
-		ScoreParams: advanced.ScoreParams{
-			SimilarityWeight: 0.3,
-			ConfidenceWeight: 0.3,
-			RecencyWeight:    0.2,
-			UtilityWeight:    0.2,
-		},
-	}
-
-	// If query text provided, set it
 	query := r.URL.Query().Get("query")
-	if query != "" {
-		req.Text = query
-	}
 
-	// Retrieve memories
-	results, err := ns.Retrieve(ctx, req)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("retrieve failed: %v", err))
-		return
+	var results []client.Result
+
+	if query != "" {
+		// Vector search with query text — use a topic vector as proxy
+		req := client.RetrieveRequest{
+			TopK:   50,
+			AsOf:   asOf,
+			Vector: seed.TopicVector(query, 0),
+			ScoreParams: advanced.ScoreParams{
+				SimilarityWeight: 0.3,
+				ConfidenceWeight: 0.3,
+				RecencyWeight:    0.2,
+				UtilityWeight:    0.2,
+			},
+		}
+		var err error
+		results, err = ns.Retrieve(ctx, req)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("retrieve failed: %v", err))
+			return
+		}
+	} else {
+		// No query — list all nodes via graph store
+		graph, _, _, _ := s.db.Stores()
+		nodes, err := graph.ValidAt(ctx, "agent", asOf, nil)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("list failed: %v", err))
+			return
+		}
+		for _, node := range nodes {
+			results = append(results, client.Result{
+				Node:            node,
+				Score:           node.Confidence,
+				ConfidenceScore: node.Confidence,
+			})
+		}
 	}
 
 	// Build response

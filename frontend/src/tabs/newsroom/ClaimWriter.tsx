@@ -16,7 +16,6 @@ export default function ClaimWriter({ sources, onWrite }: ClaimWriterProps) {
   const [topic, setTopic] = useState("economics");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<WriteResult | null>(null);
-  const [showFlash, setShowFlash] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,26 +23,19 @@ export default function ClaimWriter({ sources, onWrite }: ClaimWriterProps) {
 
     setIsSubmitting(true);
     setResult(null);
-    setShowFlash(false);
 
     try {
       const res = await api.post<WriteResult>("/newsroom/write", {
         content: content.trim(),
         source_id: sourceId,
         confidence,
-        labels: { topic },
+        labels: [topic],
         topic,
       });
-
       setResult(res);
-      setShowFlash(true);
-      setTimeout(() => setShowFlash(false), 2000);
-
-      // Reset form on success
       setContent("");
-      setConfidence(0.8);
-
       onWrite();
+      setTimeout(() => setResult(null), 3000);
     } catch (err) {
       console.error("Failed to write claim:", err);
     } finally {
@@ -52,112 +44,72 @@ export default function ClaimWriter({ sources, onWrite }: ClaimWriterProps) {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-gray-100 mb-4">
-        Write New Claim
-      </h3>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Source
-          </label>
-          <select
-            value={sourceId}
-            onChange={(e) => setSourceId(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="">Select a source...</option>
-            {sources.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.external_id || s.id}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Content
-          </label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-24"
-            placeholder="Enter claim content..."
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Confidence: {confidence.toFixed(2)}
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={confidence}
-            onChange={(e) => setConfidence(parseFloat(e.target.value))}
-            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Topic
-          </label>
-          <select
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {TOPICS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting || !sourceId || !content.trim()}
-          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+    <form onSubmit={handleSubmit} className="p-3 space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          value={sourceId}
+          onChange={(e) => setSourceId(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-100 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+          required
         >
-          {isSubmitting ? "Submitting..." : "Submit Claim"}
-        </button>
-      </form>
+          <option value="">Source...</option>
+          {sources.map((s) => (
+            <option key={s.id} value={s.external_id || s.id}>
+              {s.external_id || s.id}
+            </option>
+          ))}
+        </select>
+        <select
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          className="bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-100 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          {TOPICS.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-gray-100 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[60px] resize-none"
+        placeholder="Claim content..."
+        required
+      />
+
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min="0" max="1" step="0.05"
+          value={confidence}
+          onChange={(e) => setConfidence(parseFloat(e.target.value))}
+          className="flex-1 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+        />
+        <span className="text-xs text-gray-400 w-10 text-right font-mono">{confidence.toFixed(2)}</span>
+      </div>
+
+      <button
+        type="submit"
+        disabled={isSubmitting || !sourceId || !content.trim()}
+        className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded transition-colors text-xs font-medium"
+      >
+        {isSubmitting ? "Submitting..." : "Submit Claim"}
+      </button>
 
       {result && (
-        <div
-          className={`mt-4 p-4 rounded-lg border ${
-            result.admitted
-              ? "bg-green-950 border-green-800"
-              : "bg-red-950 border-red-800"
-          } ${showFlash ? "animate-pulse" : ""}`}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span
-              className={`font-semibold ${
-                result.admitted ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {result.admitted ? "Admitted" : "Rejected"}
-            </span>
-          </div>
-          {result.reason && (
-            <p className="text-sm text-gray-300 mb-2">{result.reason}</p>
-          )}
+        <div className={`text-xs px-2 py-1.5 rounded ${
+          result.admitted
+            ? "text-green-400 bg-green-500/10"
+            : "text-red-400 bg-red-500/10"
+        }`}>
+          {result.admitted ? "Admitted" : "Rejected"}
+          {result.reason && ` — ${result.reason}`}
           {result.conflict_ids && result.conflict_ids.length > 0 && (
-            <p className="text-sm text-orange-400">
-              Conflicts detected: {result.conflict_ids.length}
-            </p>
+            <span className="text-orange-400 ml-1">({result.conflict_ids.length} conflicts)</span>
           )}
         </div>
       )}
-    </div>
+    </form>
   );
 }

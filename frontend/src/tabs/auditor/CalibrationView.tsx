@@ -29,11 +29,28 @@ export default function CalibrationView() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-100 mb-4">
-          Calibration Analysis
+        <h4 className="text-lg font-semibold text-gray-100 mb-2">
+          Calibration Check
         </h4>
-        <p className="text-sm text-gray-400 mb-4">
-          Evaluate how well predicted confidence scores match actual outcomes.
+        <p className="text-xs text-gray-500 mb-2">
+          When the system says it&rsquo;s 80% confident, is it right about 80% of the time?
+          Calibration measures whether the confidence scores are honest. A well-calibrated
+          system is trustworthy; a poorly calibrated one is overconfident or underconfident.
+        </p>
+        <p className="text-xs text-gray-500 mb-2">
+          <strong className="text-gray-400">Reading the results:</strong>{" "}
+          All three scores are <em>lower-is-better</em>.{" "}
+          <em>Brier Score</em> is the overall accuracy of confidence predictions (under
+          0.1 is good, over 0.25 is concerning).{" "}
+          <em>ECE</em> (avg. error) tells you how off the system is on average.{" "}
+          <em>MCE</em> (max error) flags the worst-case confidence bucket. The chart
+          plots predicted vs. actual &mdash; points on the diagonal line mean perfect
+          calibration.
+        </p>
+        <p className="text-[11px] text-gray-600 mb-4">
+          Technical: Brier score, Expected Calibration Error (ECE), and Maximum
+          Calibration Error (MCE) against prediction outcomes, with Platt scaling and
+          isotonic regression for recalibration.
         </p>
         <button
           onClick={handleRun}

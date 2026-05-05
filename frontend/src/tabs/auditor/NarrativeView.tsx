@@ -33,9 +33,14 @@ export default function NarrativeView({ nodes }: NarrativeViewProps) {
     <div className="space-y-6">
       {/* Node selection and generation */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-100 mb-4">
-          Generate Narrative Explanation
+        <h4 className="text-lg font-semibold text-gray-100 mb-2">
+          Narrative Explanation
         </h4>
+        <p className="text-xs text-gray-500 mb-4">
+          Pick any claim and get the full story behind it: who said it, what supports or
+          contradicts it, and where it came from. Think of it as asking &ldquo;why should
+          I believe this?&rdquo; and getting a sourced, structured answer.
+        </p>
         <div className="flex items-end gap-4">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-300 mb-2">

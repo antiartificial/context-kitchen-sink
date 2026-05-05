@@ -26,6 +26,11 @@ const (
 	TopicGeneralTech      = "general_tech"
 	TopicGeneralCulture   = "general_culture"
 	TopicGeneralPolitics  = "general_politics"
+
+	TopicPerformance = "performance"
+	TopicReliability = "reliability"
+	TopicPricing     = "pricing"
+	TopicSecurity    = "security"
 )
 
 // TopicVector generates a deterministic 128-dimensional unit vector for a given topic and variant.

@@ -57,11 +57,21 @@ export default function ActiveLearning() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-100 mb-4">
-          Active Learning Suggestions
+        <h4 className="text-lg font-semibold text-gray-100 mb-2">
+          Active Learning
         </h4>
-        <p className="text-sm text-gray-400 mb-6">
-          AI-guided suggestions for what to learn next to maximize knowledge improvement with minimal effort.
+        <p className="text-xs text-gray-500 mb-2">
+          You can&rsquo;t investigate everything at once. This tool prioritizes where to
+          focus next, ranked by impact. Each suggestion is one of four types:{" "}
+          <em>Verify Claim</em> (an important claim that hasn&rsquo;t been independently
+          confirmed), <em>Refresh Stale</em> (evidence that&rsquo;s getting old),{" "}
+          <em>Low Confidence</em> (claims the system isn&rsquo;t sure about), or{" "}
+          <em>High Utility</em> (topics where new data would have the biggest downstream
+          impact).
+        </p>
+        <p className="text-[11px] text-gray-600 mb-6">
+          Technical: acquisition-function-based suggestions ranked by expected information
+          gain across verification, staleness, confidence, and utility dimensions.
         </p>
 
         <div className="flex items-end gap-4">

@@ -73,11 +73,19 @@ export default function RetractPanel({ onRetract }: RetractPanelProps) {
 
       {/* Retraction form */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-100 mb-4">
-          Retract Source Claims
+        <h4 className="text-lg font-semibold text-gray-100 mb-2">
+          Retract a Source
         </h4>
-        <p className="text-sm text-gray-400 mb-6">
-          Remove all claims from a specific source and propagate the retraction through the knowledge graph.
+        <p className="text-xs text-gray-500 mb-2">
+          When a source is discredited &mdash; a study retracted, a witness recants &mdash;
+          every claim they contributed needs to be removed. This doesn&rsquo;t just delete
+          the claims; it cascades through everything that depended on them, updating
+          the picture automatically.
+        </p>
+        <p className="text-[11px] text-gray-600 mb-6">
+          Technical: retracts all nodes from the source and propagates through dependent
+          edges in the knowledge graph. Try retracting &ldquo;study:withdrawn-2023&rdquo;
+          to see the cascade.
         </p>
 
         <div className="space-y-4">

@@ -44,11 +44,34 @@ export default function GapsView() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-100 mb-4">
-          Knowledge Gap Detection
+        <h4 className="text-lg font-semibold text-gray-100 mb-2">
+          Knowledge Gaps
         </h4>
-        <p className="text-sm text-gray-400 mb-6">
-          Identify sparse regions in the knowledge graph where additional information is needed.
+        <p className="text-xs text-gray-500 mb-2">
+          Spot the blind spots. Maybe there&rsquo;s plenty of data on efficacy but almost
+          nothing on long-term side effects, or the most recent evidence is months old.
+          This tool finds areas where the knowledge base is thin, outdated, or uncertain
+          &mdash; so you know where to look next.
+        </p>
+        <p className="text-xs text-gray-500 mb-2">
+          <strong className="text-gray-400">Reading the results:</strong>{" "}
+          <em>Coverage Score</em> is the overall completeness (higher is better; below 50%
+          means major blind spots). Each gap shows a <em>Density Score</em> (how sparse
+          the data is in that area &mdash; lower = emptier), a <em>Confidence Gap</em>
+          (how uncertain existing claims are), and a <em>Temporal Gap</em> (how long since
+          that topic was last updated).
+        </p>
+        <p className="text-[11px] text-gray-600 mb-6">
+          Technical: analyzes vector-space density, temporal recency, and confidence
+          distribution to locate sparse regions in the knowledge graph.
+        </p>
+
+        <p className="text-xs text-gray-500 mb-6">
+          <strong className="text-gray-400">Adjusting the sliders:</strong>{" "}
+          <em>Top K</em> controls how many claims to scan (higher = more thorough, slower).{" "}
+          <em>Min Gap Size</em> sets the threshold for what counts as a gap &mdash; lower
+          values surface smaller blind spots, higher values only show major ones.{" "}
+          <em>Max Gaps</em> limits how many results to return.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -134,9 +157,17 @@ export default function GapsView() {
         <div className="space-y-6">
           {/* Coverage score */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-gray-100 mb-4">
+            <h4 className="text-lg font-semibold text-gray-100 mb-2">
               Overall Coverage Score
             </h4>
+            <p className="text-xs text-gray-500 mb-3">
+              {report.coverage_score >= 0.8
+                ? "The knowledge base has strong coverage. Most topics have adequate data."
+                : report.coverage_score >= 0.5
+                ? "Moderate coverage — some areas are well-covered but others need attention."
+                : "Significant gaps in coverage. Many topics lack sufficient data to draw reliable conclusions."
+              }
+            </p>
             <ScoreBar
               value={report.coverage_score}
               label="Coverage"
@@ -162,6 +193,11 @@ export default function GapsView() {
               <h4 className="text-lg font-semibold text-gray-100">
                 Knowledge Gaps
               </h4>
+              <p className="text-xs text-gray-500">
+                Each gap below represents a topic area where the system has identified
+                insufficient, uncertain, or outdated information. These are the areas
+                that would benefit most from new evidence.
+              </p>
               {report.gaps.map((gap) => (
                 <GapCard key={gap.id} gap={gap} formatTemporalGap={formatTemporalGap} />
               ))}
@@ -189,6 +225,27 @@ interface GapCardProps {
 }
 
 function GapCard({ gap, formatTemporalGap }: GapCardProps) {
+  const confPct = gap.confidence_gap * 100;
+  const densityPct = gap.density_score * 100;
+
+  const confLabel = confPct >= 40
+    ? "Claims in this area are highly uncertain"
+    : confPct >= 20
+    ? "Moderate uncertainty in existing claims"
+    : "Existing claims are fairly confident";
+
+  const temporalLabel = gap.temporal_gap_seconds >= 86400 * 30
+    ? "No recent data — this area is going stale"
+    : gap.temporal_gap_seconds >= 86400
+    ? "Last updated days ago"
+    : "Recently updated";
+
+  const densityLabel = densityPct <= 20
+    ? "Very few claims cover this topic"
+    : densityPct <= 50
+    ? "Some data exists but coverage is thin"
+    : "Reasonable coverage, but gaps remain";
+
   return (
     <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
       <div className="flex items-start justify-between gap-4 mb-4">
@@ -212,24 +269,29 @@ function GapCard({ gap, formatTemporalGap }: GapCardProps) {
       </div>
 
       <div className="space-y-3">
-        <ScoreBar
-          value={gap.density_score}
-          label="Density Score"
-          color="accent"
-        />
+        <div>
+          <ScoreBar
+            value={gap.density_score}
+            label="Density Score"
+            color="accent"
+          />
+          <p className="text-[11px] text-gray-500 mt-1">{densityLabel}</p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-gray-800/50 rounded-lg p-3">
             <div className="text-xs text-gray-400 mb-1">Confidence Gap</div>
             <div className="text-lg font-semibold text-yellow-400">
-              {(gap.confidence_gap * 100).toFixed(1)}%
+              {confPct.toFixed(1)}%
             </div>
+            <p className="text-[11px] text-gray-500 mt-1">{confLabel}</p>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3">
             <div className="text-xs text-gray-400 mb-1">Temporal Gap</div>
             <div className="text-lg font-semibold text-blue-400">
               {formatTemporalGap(gap.temporal_gap_seconds)}
             </div>
+            <p className="text-[11px] text-gray-500 mt-1">{temporalLabel}</p>
           </div>
         </div>
       </div>

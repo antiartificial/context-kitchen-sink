@@ -85,10 +85,11 @@ func (s *Server) handleNewsroomSources(w http.ResponseWriter, r *http.Request) {
 
 	// Known source IDs from seed data
 	sourceIDs := []string{
-		"journalist:reuters",
-		"twitter:@cryptobro",
-		"troll:bot42",
-		"rss:bbc-news",
+		"vendor:acme-cloud",
+		"analyst:gartner",
+		"engineer:jane-chen",
+		"blog:random-dev",
+		"community:hn-thread",
 	}
 
 	// Build response with credibility metrics for each source
@@ -341,47 +342,45 @@ func (s *Server) handleNewsroomFetchLive(w http.ResponseWriter, r *http.Request)
 
 	ns := s.db.Namespace("newsroom", advanced.ModeBeliefSystem)
 
-	// Hardcoded headlines for simulation
-	headlines := []string{
-		"Central bank raises interest rates by 0.25% to combat inflation",
-		"New study shows Mediterranean diet reduces heart disease risk by 30%",
-		"Scientists discover potential biosignatures on Europa moon",
-		"Renewable energy surpasses coal in global electricity generation",
-		"Tech giant announces breakthrough in quantum computing error correction",
-		"Climate summit reaches historic agreement on carbon emissions",
-		"Major pharmaceutical trial shows promise for Alzheimer's treatment",
-		"Astronomers detect unusual radio signals from distant galaxy",
-		"Energy storage breakthrough could enable 24-hour solar power",
-		"Research reveals link between gut microbiome and mental health",
+	// Simulated incoming claims from various community sources
+	headlines := []struct {
+		content  string
+		sourceID string
+		topic    string
+		conf     float64
+	}{
+		{"Independent load test confirms Acme P99 at 52ms in EU-West under 10k RPS", "community:hn-thread", seed.TopicPerformance, 0.60},
+		{"Acme status page shows 99.92% uptime YTD, contradicting their 99.99% SLA claim", "community:hn-thread", seed.TopicReliability, 0.58},
+		{"Switched from Acme to competitor, egress bill dropped 60%", "blog:random-dev", seed.TopicPricing, 0.40},
+		{"Acme rotated our API keys automatically and nothing broke — smooth experience", "blog:random-dev", seed.TopicSecurity, 0.38},
+		{"Acme Cloud publishes new benchmark: 8ms P50 latency on dedicated instances", "vendor:acme-cloud", seed.TopicPerformance, 0.92},
+		{"Our team measured Acme at 99.7% uptime over 6 months — fine for staging, not for prod", "engineer:jane-chen", seed.TopicReliability, 0.82},
+		{"Gartner downgrades Acme Cloud reliability rating from Strong to Adequate in Q2 update", "analyst:gartner", seed.TopicReliability, 0.80},
+		{"Thread: anyone else seeing Acme latency regression since their March migration?", "community:hn-thread", seed.TopicPerformance, 0.48},
+		{"Acme just published SOC 2 Type II report — clean, but scope excludes their CDN edge nodes", "analyst:gartner", seed.TopicSecurity, 0.78},
+		{"My Acme bill went up 30% after enabling cross-region replication, not mentioned in pricing page", "blog:random-dev", seed.TopicPricing, 0.42},
 	}
 
-	// Randomly select 3 headlines
 	rand.Seed(time.Now().UnixNano())
-	selected := make([]string, 3)
+	selected := make([]struct {
+		content  string
+		sourceID string
+		topic    string
+		conf     float64
+	}, 3)
 	perm := rand.Perm(len(headlines))
 	for i := 0; i < 3; i++ {
 		selected[i] = headlines[perm[i]]
 	}
 
-	// Write each headline
 	claimsAdded := 0
-	for _, headline := range selected {
-		// Determine topic based on keywords
-		topic := seed.TopicEconomics
-		if containsAny(headline, []string{"health", "diet", "disease", "pharma", "microbiome"}) {
-			topic = seed.TopicHealth
-		} else if containsAny(headline, []string{"space", "moon", "galaxy", "astronomers"}) {
-			topic = seed.TopicSpace
-		} else if containsAny(headline, []string{"energy", "solar", "renewable"}) {
-			topic = seed.TopicEnergy
-		}
-
+	for _, h := range selected {
 		_, err := ns.Write(ctx, client.WriteRequest{
-			Content:    headline,
-			SourceID:   "rss:bbc-news",
-			Labels:     []string{"news", "live-feed"},
-			Vector:     seed.TopicVector(topic, int(time.Now().UnixNano()%1000)),
-			Confidence: 0.65,
+			Content:    h.content,
+			SourceID:   h.sourceID,
+			Labels:     []string{"live-feed"},
+			Vector:     seed.TopicVector(h.topic, int(time.Now().UnixNano()%1000)),
+			Confidence: h.conf,
 			ValidFrom:  time.Now(),
 			MemType:    advanced.MemorySemantic,
 		})
@@ -430,37 +429,3 @@ func (s *Server) handleNewsroomReset(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// containsAny returns true if s contains any of the substrings
-func containsAny(s string, substrs []string) bool {
-	for _, substr := range substrs {
-		if contains(s, substr) {
-			return true
-		}
-	}
-	return false
-}
-
-// contains returns true if s contains substr (case-insensitive)
-func contains(s, substr string) bool {
-	s = toLower(s)
-	substr = toLower(substr)
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-// toLower converts a string to lowercase
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 'a' - 'A'
-		}
-		result[i] = c
-	}
-	return string(result)
-}

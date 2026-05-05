@@ -7,13 +7,13 @@ interface ClaimWriterProps {
   onWrite: () => void;
 }
 
-const TOPICS = ["economics", "health", "space", "energy"];
+const TOPICS = ["performance", "reliability", "pricing", "security"];
 
 export default function ClaimWriter({ sources, onWrite }: ClaimWriterProps) {
   const [sourceId, setSourceId] = useState("");
   const [content, setContent] = useState("");
   const [confidence, setConfidence] = useState(0.8);
-  const [topic, setTopic] = useState("economics");
+  const [topic, setTopic] = useState("performance");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<WriteResult | null>(null);
 

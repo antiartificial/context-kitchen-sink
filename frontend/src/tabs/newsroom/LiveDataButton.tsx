@@ -26,13 +26,13 @@ export default function LiveDataButton({ onFetch }: LiveDataButtonProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-400">Fetch simulated RSS headlines as live claims from BBC source.</p>
+      <p className="text-xs text-gray-400">Simulate incoming claims from community threads, blog posts, and vendor updates.</p>
       <button
         onClick={handleFetch}
         disabled={isLoading}
         className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-lg transition-colors text-sm font-medium"
       >
-        {isLoading ? "Fetching..." : "Fetch Live Headlines"}
+        {isLoading ? "Fetching..." : "Fetch New Claims"}
       </button>
       {result && (
         <div className="text-xs text-green-400 bg-green-500/10 rounded px-2 py-1.5">

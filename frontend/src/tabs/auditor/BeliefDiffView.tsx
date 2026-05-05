@@ -30,11 +30,26 @@ export default function BeliefDiffView() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-100 mb-4">
-          Belief Diff Analysis
+        <h4 className="text-lg font-semibold text-gray-100 mb-2">
+          Belief Diff
         </h4>
-        <p className="text-sm text-gray-400 mb-4">
-          Compare conflicting beliefs across the knowledge base, like a "git diff" for epistemic states.
+        <p className="text-xs text-gray-500 mb-2">
+          Find every place where sources disagree. The trial says the drug is safe; the
+          withdrawn study claimed side effects. This tool lays those contradictions
+          side-by-side so you can see what&rsquo;s actually in dispute.
+        </p>
+        <p className="text-xs text-gray-500 mb-2">
+          <strong className="text-gray-400">What the numbers mean:</strong>{" "}
+          <em>Contradiction Weight</em> measures how directly two claims oppose each
+          other (higher = stronger disagreement). <em>Credibility Gap</em> shows how
+          far apart the sources are in trustworthiness &mdash; a large gap means a
+          trusted source disagrees with a less trusted one, making the conflict easier
+          to resolve. A small gap means both sides are equally credible, requiring
+          more investigation.
+        </p>
+        <p className="text-[11px] text-gray-600 mb-4">
+          Technical: compares epistemic states across the knowledge graph, surfacing
+          contradiction edges with credibility-gap scoring.
         </p>
         <button
           onClick={handleCompute}
@@ -159,27 +174,44 @@ function ConflictCard({ conflict }: ConflictCardProps) {
       </div>
 
       {/* Conflict metrics */}
-      <div className="bg-gray-800/50 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-400">Contradiction Weight:</span>
-          <div className="flex items-center gap-2">
-            <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${getWeightColor(conflict.contradiction_weight)} transition-all`}
-                style={{ width: `${conflict.contradiction_weight * 100}%` }}
-              />
+      <div className="bg-gray-800/50 px-6 py-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-400">Contradiction Weight:</span>
+            <div className="flex items-center gap-2">
+              <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${getWeightColor(conflict.contradiction_weight)} transition-all`}
+                  style={{ width: `${conflict.contradiction_weight * 100}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-gray-300">
+                {(conflict.contradiction_weight * 100).toFixed(1)}%
+              </span>
             </div>
-            <span className="text-sm font-medium text-gray-300">
-              {(conflict.contradiction_weight * 100).toFixed(1)}%
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">Credibility Gap:</span>
+            <span className="text-sm font-semibold text-yellow-400">
+              {(conflict.credibility_gap * 100).toFixed(1)}%
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">Credibility Gap:</span>
-          <span className="text-sm font-semibold text-yellow-400">
-            {(conflict.credibility_gap * 100).toFixed(1)}%
-          </span>
-        </div>
+        <p className="text-[11px] text-gray-500">
+          {conflict.contradiction_weight >= 0.8
+            ? "These claims directly contradict each other."
+            : conflict.contradiction_weight >= 0.5
+            ? "These claims partially conflict."
+            : "Mild tension between these claims."
+          }
+          {" "}
+          {conflict.credibility_gap >= 0.3
+            ? "The large credibility gap suggests the more trusted source likely prevails."
+            : conflict.credibility_gap >= 0.1
+            ? "Both sources have similar credibility — this conflict needs more evidence to resolve."
+            : "Both sources are equally credible — this is a genuine open question."
+          }
+        </p>
       </div>
     </div>
   );

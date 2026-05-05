@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../../api";
 import type { AuditorNode } from "../../types";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -29,11 +29,22 @@ const navItems: { id: SubView; label: string; short: string; icon: string }[] = 
   { id: "active-learning", label: "Active Learning", short: "Learn",      icon: "L" },
 ];
 
+const PILL_COLORS: Record<SubView, string> = {
+  "narrative":       "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
+  "belief-diff":     "bg-red-500/20 text-red-400 border-red-500/30",
+  "gaps":            "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  "calibration":     "bg-green-500/20 text-green-400 border-green-500/30",
+  "retract":         "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  "gdpr":            "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  "active-learning": "bg-purple-500/20 text-purple-400 border-purple-500/30",
+};
+
 export default function AuditorTab() {
   const [nodes, setNodes] = useState<AuditorNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<SubView>("narrative");
   const [isResetting, setIsResetting] = useState(false);
+  const [glowView, setGlowView] = useState<SubView | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchNodes = async () => {
@@ -64,17 +75,26 @@ export default function AuditorTab() {
 
   const switchView = (id: SubView) => {
     setActiveView(id);
-    // On mobile, scroll content into view
     scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const hintView = useCallback((view: SubView) => {
+    setGlowView(view);
+    setTimeout(() => setGlowView(null), 1600);
+  }, []);
+
+  const goTo = useCallback((view: SubView) => {
+    setActiveView(view);
+    hintView(view);
+  }, [hintView]);
 
   const activeLabel = navItems.find((n) => n.id === activeView)?.label;
 
   return (
     <div className="space-y-3">
-      {/* Synopsis */}
+      {/* Executive summary + interactive synopsis */}
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold text-gray-100">Auditor</h2>
           <button
             onClick={handleReset}
@@ -84,10 +104,46 @@ export default function AuditorTab() {
             {isResetting ? "..." : "Reset"}
           </button>
         </div>
-        <p className="text-xs text-gray-400">
-          Epistemic analysis tools for the auditor namespace (25 pharma trial nodes).
-          Generate narratives, detect belief conflicts, find knowledge gaps, check calibration,
-          retract sources, process GDPR erasure, or get active learning suggestions.
+        <p className="text-[11px] text-gray-500 leading-relaxed mb-2">
+          A drug trial publishes promising results. A meta-analysis agrees. Then the
+          lead researcher&rsquo;s earlier study is retracted for fabricated data. The FDA
+          issues a cautious advisory, and patients report mixed real-world outcomes.
+          How do you decide what to trust &mdash; and how do you <em>prove</em> your
+          reasoning is sound?
+        </p>
+        <p className="text-xs text-gray-400 leading-relaxed">
+          <strong className="text-gray-300">Scenario:</strong> Evaluating a pharma trial
+          across 25 claims from 5 sources (trial, meta-analysis, withdrawn study, FDA,
+          patient reports).{" "}
+          <Pill view="narrative" onClick={() => goTo("narrative")}>
+            Narrative
+          </Pill>{" "}
+          explains any claim in plain language with its full evidence chain.{" "}
+          <Pill view="belief-diff" onClick={() => goTo("belief-diff")}>
+            Belief Diff
+          </Pill>{" "}
+          surfaces contradictions between sources, like a &ldquo;track changes&rdquo; for
+          what&rsquo;s believed vs. what&rsquo;s contested.{" "}
+          <Pill view="gaps" onClick={() => goTo("gaps")}>
+            Knowledge Gaps
+          </Pill>{" "}
+          reveals blind spots &mdash; topics with too little data or outdated evidence.{" "}
+          <Pill view="calibration" onClick={() => goTo("calibration")}>
+            Calibration
+          </Pill>{" "}
+          checks whether the system&rsquo;s confidence scores actually match reality.{" "}
+          <Pill view="retract" onClick={() => goTo("retract")}>
+            Retract
+          </Pill>{" "}
+          removes a discredited source and cascades the impact.{" "}
+          <Pill view="gdpr" onClick={() => goTo("gdpr")}>
+            GDPR Erasure
+          </Pill>{" "}
+          demonstrates regulatory-compliant data deletion.{" "}
+          <Pill view="active-learning" onClick={() => goTo("active-learning")}>
+            Active Learning
+          </Pill>{" "}
+          recommends where to invest effort next for the biggest knowledge payoff.
         </p>
       </div>
 
@@ -102,7 +158,7 @@ export default function AuditorTab() {
                 activeView === item.id
                   ? "bg-[#6366f1] text-white shadow-md shadow-indigo-500/20"
                   : "bg-gray-800 text-gray-400 hover:text-white"
-              }`}
+              } ${glowView === item.id ? "animate-tab-glow" : ""}`}
             >
               {item.short}
             </button>
@@ -122,7 +178,7 @@ export default function AuditorTab() {
                 activeView === item.id
                   ? "bg-[#6366f1]/10 text-white border-r-2 border-[#6366f1] font-medium"
                   : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-              }`}
+              } ${glowView === item.id ? "animate-tab-glow" : ""}`}
             >
               {item.label}
             </button>
@@ -185,5 +241,20 @@ function ViewContent({
       {activeView === "gdpr" && <GDPRErasure onErase={onDataChange} />}
       {activeView === "active-learning" && <ActiveLearning />}
     </>
+  );
+}
+
+function Pill({ view, onClick, children }: {
+  view: SubView;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`pill-interactive inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium border ${PILL_COLORS[view]}`}
+    >
+      {children}
+    </button>
   );
 }

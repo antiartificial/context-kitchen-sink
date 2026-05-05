@@ -81,9 +81,9 @@ export default function NewsroomTab() {
 
   return (
     <div className="space-y-3">
-      {/* Synopsis with interactive pills */}
+      {/* Executive summary + interactive synopsis */}
       <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold text-gray-100">Newsroom</h2>
           <button
             onClick={handleReset}
@@ -93,28 +93,36 @@ export default function NewsroomTab() {
             {isResetting ? "..." : "Reset"}
           </button>
         </div>
+        <p className="text-[11px] text-gray-500 leading-relaxed mb-2">
+          When information comes from multiple sources, who do you trust?
+          A vendor says their API is sub-10ms. An analyst agrees. Then a respected engineer
+          publishes benchmarks showing 47ms. A random blog post backs that up.
+          The spec sheet and the data disagree &mdash; <em>which claim wins?</em>
+        </p>
         <p className="text-xs text-gray-400 leading-relaxed">
-          Multi-source credibility tracking.{" "}
+          <strong className="text-gray-300">Scenario:</strong> Evaluating Acme Cloud.{" "}
           <Pill color="sources" onClick={() => { setActivePanel("sources"); hintTab("sources"); }}>
-            4 sources
+            5 sources
           </Pill>{" "}
-          (Reuters, Twitter, troll bot, BBC) are seeded with contradicting claims.{" "}
-          <Pill color="write" onClick={() => { setActivePanel("write"); hintTab("write"); }}>
-            Write claims
-          </Pill>{" "}
-          to test admission gating,{" "}
-          <Pill color="validate" onClick={() => { setActivePanel("validate"); hintTab("validate"); }}>
-            validate/refute
-          </Pill>{" "}
-          sources to see Bayesian credibility shift, and watch{" "}
+          (vendor, analyst, engineer, blog, community) compete with conflicting claims
+          about performance, reliability, pricing, and security.{" "}
           <Pill color="conflicts" onClick={() => { setActivePanel("conflicts"); hintTab("conflicts"); }}>
-            conflict clusters
+            Conflict clusters
           </Pill>{" "}
-          form. Pull{" "}
+          group contradicting claims and show the credibility gap.{" "}
+          <Pill color="validate" onClick={() => { setActivePanel("validate"); hintTab("validate"); }}>
+            Validate/refute
+          </Pill>{" "}
+          sources as evidence arrives to watch Bayesian credibility shift &mdash;
+          the engineer's data can overturn the vendor's spec sheet.{" "}
+          <Pill color="write" onClick={() => { setActivePanel("write"); hintTab("write"); }}>
+            Add claims
+          </Pill>{" "}
+          or pull{" "}
           <Pill color="live" onClick={() => { setActivePanel("live"); hintTab("live"); }}>
-            live headlines
+            live data
           </Pill>{" "}
-          to grow the feed.
+          to see how new evidence reshapes the picture.
         </p>
       </div>
 

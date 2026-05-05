@@ -1,11 +1,14 @@
 package api
 
 import (
+	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/antiartificial/context-kitchen-sink/internal/seed"
 	"github.com/antiartificial/contextdb/pkg/advanced"
+	"github.com/antiartificial/contextdb/pkg/client"
 )
 
 // parseMode converts a mode string to a NamespaceMode constant
@@ -98,9 +101,12 @@ func (s *Server) handleReplExecute(w http.ResponseWriter, r *http.Request) {
 	mode := parseMode(req.Mode)
 	ns := s.db.Namespace(namespace, mode)
 
-	// Execute retrieve
+	// Execute retrieve — fall back to text matching when no embedder is configured
 	executeStart := time.Now()
 	results, err := ns.Retrieve(ctx, retrieveReq)
+	if err == nil && len(results) == 0 && query.SearchText != "" {
+		results = textFallbackSearch(ctx, s, namespace, query, retrieveReq)
+	}
 	executeTime := time.Since(executeStart)
 
 	// If execution error, return with error
@@ -241,4 +247,79 @@ func (s *Server) handleReplReset(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{
 		"ok": true,
 	})
+}
+
+// textFallbackSearch does substring matching when no embedder is configured.
+func textFallbackSearch(ctx context.Context, s *Server, namespace string, query *advanced.Query, req client.RetrieveRequest) []client.Result {
+	graph, _, _, _ := s.db.Stores()
+	nodes, err := graph.ValidAt(ctx, namespace, time.Now(), req.Labels)
+	if err != nil {
+		return nil
+	}
+
+	terms := strings.Fields(strings.ToLower(query.SearchText))
+	topK := req.TopK
+	if topK <= 0 {
+		topK = 10
+	}
+
+	var matched []client.Result
+	for _, node := range nodes {
+		text := strings.ToLower(advanced.NodeText(node))
+		hits := 0
+		for _, term := range terms {
+			if strings.Contains(text, term) {
+				hits++
+			}
+		}
+		if hits == 0 {
+			continue
+		}
+
+		similarity := float64(hits) / float64(len(terms))
+
+		// Apply confidence predicate filter
+		passFilter := true
+		for _, pred := range query.Predicates {
+			if pred.Field == "confidence" {
+				switch pred.Op.String() {
+				case ">":
+					passFilter = node.Confidence > pred.Value.Num
+				case ">=":
+					passFilter = node.Confidence >= pred.Value.Num
+				case "<":
+					passFilter = node.Confidence < pred.Value.Num
+				case "<=":
+					passFilter = node.Confidence <= pred.Value.Num
+				}
+			}
+		}
+		if !passFilter {
+			continue
+		}
+
+		score := similarity*0.5 + node.Confidence*0.3 + 0.2
+		matched = append(matched, client.Result{
+			Node:            node,
+			Score:           score,
+			SimilarityScore: similarity,
+			ConfidenceScore: node.Confidence,
+			RecencyScore:    0.5,
+			UtilityScore:    0.5,
+		})
+	}
+
+	// Sort by score descending
+	for i := 0; i < len(matched); i++ {
+		for j := i + 1; j < len(matched); j++ {
+			if matched[j].Score > matched[i].Score {
+				matched[i], matched[j] = matched[j], matched[i]
+			}
+		}
+	}
+
+	if len(matched) > topK {
+		matched = matched[:topK]
+	}
+	return matched
 }

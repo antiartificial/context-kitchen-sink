@@ -275,15 +275,25 @@ func (s *Server) handleAuditorCalibration(w http.ResponseWriter, r *http.Request
 
 	outcomes := make([]advanced.PredictionOutcome, 0)
 	for _, node := range nodes {
-		if predMap, ok := node.Properties["prediction_outcome"].(map[string]interface{}); ok {
-			predicted, okPred := predMap["predicted"].(float64)
-			actual, okActual := predMap["actual"].(float64)
-			if okPred && okActual {
-				outcomes = append(outcomes, advanced.PredictionOutcome{
-					Predicted: predicted,
-					Actual:    actual,
-				})
-			}
+		pred, ok := node.Properties["prediction_outcome"]
+		if !ok {
+			continue
+		}
+		var predicted, actual float64
+		var havePred, haveActual bool
+		switch m := pred.(type) {
+		case map[string]interface{}:
+			predicted, havePred = m["predicted"].(float64)
+			actual, haveActual = m["actual"].(float64)
+		case map[string]float64:
+			predicted, havePred = m["predicted"]
+			actual, haveActual = m["actual"]
+		}
+		if havePred && haveActual {
+			outcomes = append(outcomes, advanced.PredictionOutcome{
+				Predicted: predicted,
+				Actual:    actual,
+			})
 		}
 	}
 

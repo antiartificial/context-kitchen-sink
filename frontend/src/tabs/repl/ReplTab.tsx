@@ -16,70 +16,120 @@ interface ExampleQuery {
   description: string;
 }
 
-const EXAMPLES: ExampleQuery[] = [
+type ExampleGroup = {
+  group: string;
+  description: string;
+  items: ExampleQuery[];
+};
+
+const EXAMPLE_GROUPS: ExampleGroup[] = [
   {
-    label: "Science claims",
-    query: 'search "quantum" | where confidence > 0.7 | weight similarity:high | top 5',
-    syntax: "pipe",
-    namespace: "repl",
-    mode: "general",
-    description: "Search seeded science content for quantum-related claims",
+    group: "Pipe Syntax",
+    description: "Unix-style chaining: search | filter | weight | top",
+    items: [
+      {
+        label: "REPL: quantum science",
+        query: 'search "quantum" | where confidence > 0.7 | weight similarity:high | top 5',
+        syntax: "pipe",
+        namespace: "repl",
+        mode: "general",
+        description: "General namespace — search Wikipedia-sourced science claims",
+      },
+      {
+        label: "REPL: history + recency",
+        query: 'search "Roman Empire" | weight recency:high, similarity:0.4 | top 5',
+        syntax: "pipe",
+        namespace: "repl",
+        mode: "general",
+        description: "Boost recently-added content with custom weight tuning",
+      },
+      {
+        label: "Newsroom: Acme latency",
+        query: 'search "latency" | where confidence > 0.5 | weight confidence:high | top 10',
+        syntax: "pipe",
+        namespace: "newsroom",
+        mode: "belief_system",
+        description: "Belief system — competing vendor vs. engineer performance claims",
+      },
+      {
+        label: "Newsroom: pricing",
+        query: 'search "pricing cost egress" | top 10',
+        syntax: "pipe",
+        namespace: "newsroom",
+        mode: "belief_system",
+        description: "Find all pricing-related claims across sources",
+      },
+      {
+        label: "Agent: auth refactor",
+        query: 'search "auth" | weight recency:high | top 10',
+        syntax: "pipe",
+        namespace: "agent",
+        mode: "agent_memory",
+        description: "Agent memory — episodic memories from an auth module refactor",
+      },
+      {
+        label: "Agent: deployment",
+        query: 'search "deploy staging production" | top 5',
+        syntax: "pipe",
+        namespace: "agent",
+        mode: "agent_memory",
+        description: "Agent's procedural and episodic deployment memories",
+      },
+      {
+        label: "Auditor: trial efficacy",
+        query: 'search "efficacy" | weight confidence:high | top 10',
+        syntax: "pipe",
+        namespace: "auditor",
+        mode: "belief_system",
+        description: "Pharma trial claims about drug effectiveness from 5 sources",
+      },
+      {
+        label: "Auditor: side effects",
+        query: 'search "adverse reaction side effect" | top 10',
+        syntax: "pipe",
+        namespace: "auditor",
+        mode: "belief_system",
+        description: "Safety data including the retracted study's fabricated claims",
+      },
+    ],
   },
   {
-    label: "High-confidence tech",
-    query: 'search "machine learning" | where confidence > 0.8 | top 10',
-    syntax: "pipe",
-    namespace: "repl",
-    mode: "general",
-    description: "Find tech claims above 80% confidence",
-  },
-  {
-    label: "History with recency",
-    query: 'search "Roman Empire" | weight recency:high, similarity:0.4 | top 5',
-    syntax: "pipe",
-    namespace: "repl",
-    mode: "general",
-    description: "History search boosting recently-added content",
-  },
-  {
-    label: "Newsroom conflicts",
-    query: 'search "interest rates" | where confidence > 0.5 | top 10',
-    syntax: "pipe",
-    namespace: "newsroom",
-    mode: "belief_system",
-    description: "Search newsroom for economic claims (may surface conflicts)",
-  },
-  {
-    label: "Agent auth memories",
-    query: 'search "auth" | weight recency:high | top 10',
-    syntax: "pipe",
-    namespace: "agent",
-    mode: "agent_memory",
-    description: "Find agent's episodic memories about the auth refactor",
-  },
-  {
-    label: "CQL: culture filter",
-    query: 'FIND "Shakespeare" WHERE confidence > 0.5 WEIGHT similarity=high LIMIT 5',
-    syntax: "cql",
-    namespace: "repl",
-    mode: "general",
-    description: "CQL syntax — search culture claims",
-  },
-  {
-    label: "Auditor pharma data",
-    query: 'search "drug efficacy" | weight confidence:high | top 10',
-    syntax: "pipe",
-    namespace: "auditor",
-    mode: "belief_system",
-    description: "Query the auditor's pharma trial dataset",
-  },
-  {
-    label: "CQL: graph traversal",
-    query: 'FIND "vaccine" FOLLOW supports DEPTH 2 LIMIT 10',
-    syntax: "cql",
-    namespace: "newsroom",
-    mode: "belief_system",
-    description: "CQL with graph edges — find supporting evidence chains",
+    group: "CQL Syntax",
+    description: "SQL-like queries: FIND ... WHERE ... WEIGHT ... LIMIT",
+    items: [
+      {
+        label: "REPL: Shakespeare",
+        query: 'FIND "Shakespeare" WHERE confidence > 0.5 WEIGHT similarity=high LIMIT 5',
+        syntax: "cql",
+        namespace: "repl",
+        mode: "general",
+        description: "CQL equivalent of pipe search — culture claims from Wikipedia data",
+      },
+      {
+        label: "REPL: machine learning",
+        query: 'FIND "machine learning" WHERE confidence > 0.8 LIMIT 10',
+        syntax: "cql",
+        namespace: "repl",
+        mode: "general",
+        description: "CQL with confidence filter on tech claims",
+      },
+      {
+        label: "Newsroom: uptime SLA",
+        query: 'FIND "uptime reliability SLA" WEIGHT confidence=high LIMIT 10',
+        syntax: "cql",
+        namespace: "newsroom",
+        mode: "belief_system",
+        description: "CQL on belief system — vendor says 99.99%, engineer measured 99.48%",
+      },
+      {
+        label: "Auditor: graph traversal",
+        query: 'FIND "clinical trial" FOLLOW supports DEPTH 2 LIMIT 10',
+        syntax: "cql",
+        namespace: "auditor",
+        mode: "belief_system",
+        description: "CQL with edge traversal — find supporting evidence chains",
+      },
+    ],
   },
 ];
 
@@ -180,19 +230,27 @@ export default function ReplTab() {
         </div>
       </div>
 
-      {/* Example queries */}
+      {/* Example queries — grouped by syntax */}
       <div className="px-4 py-2 border-b border-gray-800 overflow-x-auto">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider flex-shrink-0">Try:</span>
-          {EXAMPLES.map((ex) => (
-            <button
-              key={ex.label}
-              onClick={() => loadExample(ex)}
-              title={ex.description}
-              className="pill-interactive flex-shrink-0 px-2 py-1 rounded-full text-[11px] font-medium border border-gray-700 text-gray-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-500/10 transition-all"
-            >
-              {ex.label}
-            </button>
+        <div className="space-y-1.5">
+          {EXAMPLE_GROUPS.map((group) => (
+            <div key={group.group} className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-500 uppercase tracking-wider flex-shrink-0 w-14" title={group.description}>
+                {group.group === "Pipe Syntax" ? "Pipe" : "CQL"}:
+              </span>
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                {group.items.map((ex) => (
+                  <button
+                    key={ex.label}
+                    onClick={() => loadExample(ex)}
+                    title={ex.description}
+                    className="pill-interactive flex-shrink-0 px-2 py-1 rounded-full text-[11px] font-medium border border-gray-700 text-gray-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-500/10 transition-all"
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -227,11 +285,27 @@ export default function ReplTab() {
 
             {!result && (
               <div className="h-full flex items-center justify-center text-gray-500">
-                <div className="text-center max-w-md">
-                  <p className="text-sm mb-1">Select an example above or write your own query</p>
+                <div className="text-center max-w-lg space-y-4 px-4">
+                  <p className="text-sm">Select an example above or write your own query</p>
                   <p className="text-xs text-gray-600">
                     Ctrl+Enter to execute &middot; Shift+Tab to format &middot; Tab to indent
                   </p>
+                  <div className="text-left grid grid-cols-2 gap-4 text-[11px] text-gray-500 pt-2">
+                    <div>
+                      <h4 className="text-gray-400 font-medium mb-1">Two query syntaxes</h4>
+                      <p className="mb-1"><span className="text-blue-400">Pipe</span> &mdash; Unix-style chaining:
+                        <code className="text-gray-400 ml-1">search &quot;term&quot; | where ... | top N</code></p>
+                      <p><span className="text-blue-400">CQL</span> &mdash; SQL-like:
+                        <code className="text-gray-400 ml-1">FIND &quot;term&quot; WHERE ... LIMIT N</code></p>
+                    </div>
+                    <div>
+                      <h4 className="text-gray-400 font-medium mb-1">Namespaces &amp; modes</h4>
+                      <p><span className="text-green-400">REPL</span> &mdash; Wikipedia reference data (general mode)</p>
+                      <p><span className="text-green-400">Newsroom</span> &mdash; Acme Cloud vendor eval (belief system)</p>
+                      <p><span className="text-green-400">Agent</span> &mdash; Auth refactor memories (agent memory)</p>
+                      <p><span className="text-green-400">Auditor</span> &mdash; Pharma trial data (belief system)</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

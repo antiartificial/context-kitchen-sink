@@ -29,16 +29,6 @@ const navItems: { id: SubView; label: string; short: string; icon: string }[] = 
   { id: "active-learning", label: "Active Learning", short: "Learn",      icon: "L" },
 ];
 
-const PILL_COLORS: Record<SubView, string> = {
-  "narrative":       "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
-  "belief-diff":     "bg-red-500/20 text-red-400 border-red-500/30",
-  "gaps":            "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  "calibration":     "bg-green-500/20 text-green-400 border-green-500/30",
-  "retract":         "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  "gdpr":            "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "active-learning": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-};
-
 export default function AuditorTab() {
   const [nodes, setNodes] = useState<AuditorNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,40 +101,34 @@ export default function AuditorTab() {
           How do you decide what to trust &mdash; and how do you <em>prove</em> your
           reasoning is sound?
         </p>
-        <p className="text-xs text-gray-400 leading-relaxed">
+        <p className="text-xs text-gray-400 leading-relaxed mb-2">
           <strong className="text-gray-300">Scenario:</strong> Evaluating a pharma trial
           across 25 claims from 5 sources (trial, meta-analysis, withdrawn study, FDA,
-          patient reports).{" "}
-          <Pill view="narrative" onClick={() => goTo("narrative")}>
-            Narrative
-          </Pill>{" "}
-          explains any claim in plain language with its full evidence chain.{" "}
-          <Pill view="belief-diff" onClick={() => goTo("belief-diff")}>
-            Belief Diff
-          </Pill>{" "}
-          surfaces contradictions between sources, like a &ldquo;track changes&rdquo; for
-          what&rsquo;s believed vs. what&rsquo;s contested.{" "}
-          <Pill view="gaps" onClick={() => goTo("gaps")}>
-            Knowledge Gaps
-          </Pill>{" "}
-          reveals blind spots &mdash; topics with too little data or outdated evidence.{" "}
-          <Pill view="calibration" onClick={() => goTo("calibration")}>
-            Calibration
-          </Pill>{" "}
-          checks whether the system&rsquo;s confidence scores actually match reality.{" "}
-          <Pill view="retract" onClick={() => goTo("retract")}>
-            Retract
-          </Pill>{" "}
-          removes a discredited source and cascades the impact.{" "}
-          <Pill view="gdpr" onClick={() => goTo("gdpr")}>
-            GDPR Erasure
-          </Pill>{" "}
-          demonstrates regulatory-compliant data deletion.{" "}
-          <Pill view="active-learning" onClick={() => goTo("active-learning")}>
-            Active Learning
-          </Pill>{" "}
-          recommends where to invest effort next for the biggest knowledge payoff.
+          patient reports).
         </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-400">
+          <LegendItem view="narrative" onClick={() => goTo("narrative")}>
+            Explain any claim with its full evidence chain
+          </LegendItem>
+          <LegendItem view="belief-diff" onClick={() => goTo("belief-diff")}>
+            Surface contradictions between sources
+          </LegendItem>
+          <LegendItem view="gaps" onClick={() => goTo("gaps")}>
+            Find blind spots and outdated evidence
+          </LegendItem>
+          <LegendItem view="calibration" onClick={() => goTo("calibration")}>
+            Check if confidence scores match reality
+          </LegendItem>
+          <LegendItem view="retract" onClick={() => goTo("retract")}>
+            Remove a discredited source and cascade
+          </LegendItem>
+          <LegendItem view="gdpr" onClick={() => goTo("gdpr")}>
+            Regulatory-compliant data deletion
+          </LegendItem>
+          <LegendItem view="active-learning" onClick={() => goTo("active-learning")}>
+            Prioritize where to investigate next
+          </LegendItem>
+        </div>
       </div>
 
       {/* Mobile: horizontal scrollable pill nav */}
@@ -244,17 +228,27 @@ function ViewContent({
   );
 }
 
-function Pill({ view, onClick, children }: {
+function LegendItem({ view, onClick, children }: {
   view: SubView;
   onClick: () => void;
   children: React.ReactNode;
 }) {
+  const dotColors: Record<SubView, string> = {
+    "narrative":       "bg-indigo-400",
+    "belief-diff":     "bg-red-400",
+    "gaps":            "bg-yellow-400",
+    "calibration":     "bg-green-400",
+    "retract":         "bg-orange-400",
+    "gdpr":            "bg-blue-400",
+    "active-learning": "bg-purple-400",
+  };
   return (
     <button
       onClick={onClick}
-      className={`pill-interactive inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium border ${PILL_COLORS[view]}`}
+      className="flex items-center gap-2 text-left py-0.5 hover:text-white transition-colors group"
     >
-      {children}
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColors[view]} group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-offset-gray-900 group-hover:ring-current`} />
+      <span className="text-[11px]">{children}</span>
     </button>
   );
 }

@@ -13,14 +13,6 @@ import LiveDataButton from "./LiveDataButton";
 
 type PanelTab = "write" | "conflicts" | "sources" | "validate" | "live";
 
-const TAB_COLORS: Record<PanelTab, string> = {
-  write:     "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  conflicts: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  sources:   "bg-green-500/20 text-green-400 border-green-500/30",
-  validate:  "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  live:      "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-};
-
 const TAB_ACTIVE_BG: Record<PanelTab, string> = {
   write:     "border-blue-500",
   conflicts: "border-orange-500",
@@ -99,31 +91,28 @@ export default function NewsroomTab() {
           publishes benchmarks showing 47ms. A random blog post backs that up.
           The spec sheet and the data disagree &mdash; <em>which claim wins?</em>
         </p>
-        <p className="text-xs text-gray-400 leading-relaxed">
-          <strong className="text-gray-300">Scenario:</strong> Evaluating Acme Cloud.{" "}
-          <Pill color="sources" onClick={() => { setActivePanel("sources"); hintTab("sources"); }}>
-            5 sources
-          </Pill>{" "}
-          (vendor, analyst, engineer, blog, community) compete with conflicting claims
-          about performance, reliability, pricing, and security.{" "}
-          <Pill color="conflicts" onClick={() => { setActivePanel("conflicts"); hintTab("conflicts"); }}>
-            Conflict clusters
-          </Pill>{" "}
-          group contradicting claims and show the credibility gap.{" "}
-          <Pill color="validate" onClick={() => { setActivePanel("validate"); hintTab("validate"); }}>
-            Validate/refute
-          </Pill>{" "}
-          sources as evidence arrives to watch Bayesian credibility shift &mdash;
-          the engineer's data can overturn the vendor's spec sheet.{" "}
-          <Pill color="write" onClick={() => { setActivePanel("write"); hintTab("write"); }}>
-            Add claims
-          </Pill>{" "}
-          or pull{" "}
-          <Pill color="live" onClick={() => { setActivePanel("live"); hintTab("live"); }}>
-            live data
-          </Pill>{" "}
-          to see how new evidence reshapes the picture.
+        <p className="text-xs text-gray-400 leading-relaxed mb-2">
+          <strong className="text-gray-300">Scenario:</strong> Evaluating Acme Cloud.
+          Five sources (vendor, analyst, engineer, blog, community) compete with
+          conflicting claims about performance, reliability, pricing, and security.
         </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-400">
+          <LegendItem color="sources" onClick={() => { setActivePanel("sources"); hintTab("sources"); }}>
+            Compare source credibility and track records
+          </LegendItem>
+          <LegendItem color="conflicts" onClick={() => { setActivePanel("conflicts"); hintTab("conflicts"); }}>
+            See which claims contradict each other
+          </LegendItem>
+          <LegendItem color="validate" onClick={() => { setActivePanel("validate"); hintTab("validate"); }}>
+            Validate or refute sources to shift credibility
+          </LegendItem>
+          <LegendItem color="write" onClick={() => { setActivePanel("write"); hintTab("write"); }}>
+            Submit new claims from any source
+          </LegendItem>
+          <LegendItem color="live" onClick={() => { setActivePanel("live"); hintTab("live"); }}>
+            Pull simulated live data from the community
+          </LegendItem>
+        </div>
       </div>
 
       {/* Main layout */}
@@ -196,18 +185,25 @@ export default function NewsroomTab() {
   );
 }
 
-// Interactive synopsis pill
-function Pill({ color, onClick, children }: {
+function LegendItem({ color, onClick, children }: {
   color: PanelTab;
   onClick: () => void;
   children: React.ReactNode;
 }) {
+  const dotColors: Record<PanelTab, string> = {
+    write:     "bg-blue-400",
+    conflicts: "bg-orange-400",
+    sources:   "bg-green-400",
+    validate:  "bg-purple-400",
+    live:      "bg-cyan-400",
+  };
   return (
     <button
       onClick={onClick}
-      className={`pill-interactive inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium border ${TAB_COLORS[color]}`}
+      className="flex items-center gap-2 text-left py-0.5 hover:text-white transition-colors group"
     >
-      {children}
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColors[color]} group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-offset-gray-900 group-hover:ring-current`} />
+      <span className="text-[11px]">{children}</span>
     </button>
   );
 }

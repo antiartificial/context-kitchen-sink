@@ -5,6 +5,7 @@ import TimeSlider from "./TimeSlider";
 import MemoryTimeline from "./MemoryTimeline";
 import DecayChart from "./DecayChart";
 import NoiseButton from "./NoiseButton";
+import OdometerCount from "../../components/OdometerCount";
 
 export default function AgentTab() {
   const [hoursAgo, setHoursAgo] = useState(0);
@@ -13,6 +14,7 @@ export default function AgentTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [fetchTick, setFetchTick] = useState(0);
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -45,7 +47,7 @@ export default function AgentTab() {
     };
     fetchMemories();
     return () => { cancelled = true; };
-  }, [hoursAgo, searchQuery]);
+  }, [hoursAgo, searchQuery, fetchTick]);
 
   const handleReset = async () => {
     setIsResetting(true);
@@ -66,17 +68,8 @@ export default function AgentTab() {
     }
   };
 
-  const handleInject = async () => {
-    const asOf = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
-    const queryParam = searchQuery ? `&query=${encodeURIComponent(searchQuery)}` : "";
-    try {
-      const data = await api.get<{ memories: Memory[] }>(
-        `/agent/memories?as_of=${asOf}${queryParam}`
-      );
-      setMemories(data.memories);
-    } catch (err) {
-      console.error("Failed to refetch memories:", err);
-    }
+  const handleInject = () => {
+    setFetchTick((t) => t + 1);
   };
 
   const epCount = memories.filter((m) => m.mem_type === "episodic").length;
@@ -104,11 +97,11 @@ export default function AgentTab() {
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-bold text-gray-100">Agent Memory</h2>
           <div className="hidden sm:flex items-center gap-3 text-xs">
-            <span className="text-gray-500">{memories.length} total</span>
-            <span className="text-blue-400">{epCount} ep</span>
-            <span className="text-green-400">{semCount} sem</span>
-            <span className="text-purple-400">{procCount} proc</span>
-            <span className="text-orange-400">{wkCount} wk</span>
+            <span className="text-gray-500"><OdometerCount value={memories.length} /> total</span>
+            <span className="text-blue-400"><OdometerCount value={epCount} /> ep</span>
+            <span className="text-green-400"><OdometerCount value={semCount} /> sem</span>
+            <span className="text-purple-400"><OdometerCount value={procCount} /> proc</span>
+            <span className="text-orange-400"><OdometerCount value={wkCount} /> wk</span>
             <span className="text-gray-500">avg {avgScore}</span>
           </div>
         </div>

@@ -107,8 +107,8 @@ export function QueryEditor({
 
   const placeholder =
     syntax === 'pipe'
-      ? 'search "quantum computing" | where confidence > 0.7 | weight recency:high | top 10'
-      : 'FIND "quantum computing" WHERE confidence > 0.7 WEIGHT recency=high LIMIT 10';
+      ? 'search "DNA gene" | where confidence > 0.7 | weight recency:high | top 10'
+      : 'FIND "Renaissance Leonardo" WHERE confidence > 0.5 WEIGHT similarity=high LIMIT 10';
 
   return (
     <div className="p-4">

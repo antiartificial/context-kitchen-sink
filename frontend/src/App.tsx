@@ -30,24 +30,27 @@ const CAPABILITIES: { title: string; subtitle: string; icon: string }[] = [
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("Newsroom");
+  const [showCaps, setShowCaps] = useState(true);
 
   return (
     <AuthGate>
-      <Layout>
+      <Layout showCapabilities={showCaps} onToggleCapabilities={() => setShowCaps((s) => !s)}>
         {/* Hero capabilities */}
-        <div className="mb-6 bg-gray-900 border border-gray-800 rounded-lg px-4 py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {CAPABILITIES.map((cap) => (
-              <div key={cap.title} className="text-center flex flex-col items-center">
-                <svg className="w-5 h-5 text-indigo-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={cap.icon} />
-                </svg>
-                <div className="text-sm font-semibold text-gray-100">{cap.title}</div>
-                <div className="text-[11px] text-gray-500 mt-0.5">{cap.subtitle}</div>
-              </div>
-            ))}
+        {showCaps && (
+          <div className="mb-6 bg-gray-900 border border-gray-800 rounded-lg px-4 py-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {CAPABILITIES.map((cap) => (
+                <div key={cap.title} className="text-center flex flex-col items-center">
+                  <svg className="w-5 h-5 text-indigo-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={cap.icon} />
+                  </svg>
+                  <div className="text-sm font-semibold text-gray-100">{cap.title}</div>
+                  <div className="text-[11px] text-gray-500 mt-0.5">{cap.subtitle}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <TabBar tabs={tabs} active={tab} onChange={setTab} icons={TAB_ICONS} />
         <div className="mt-6">

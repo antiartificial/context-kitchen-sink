@@ -28,8 +28,8 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
     description: "Unix-style chaining: search | filter | weight | top",
     items: [
       {
-        label: "REPL: quantum science",
-        query: 'search "quantum" | where confidence > 0.7 | weight similarity:high | top 5',
+        label: "REPL: DNA + CRISPR",
+        query: 'search "DNA CRISPR gene" | where confidence > 0.7 | weight similarity:high | top 5',
         syntax: "pipe",
         namespace: "repl",
         mode: "general",
@@ -98,16 +98,16 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
     description: "SQL-like queries: FIND ... WHERE ... WEIGHT ... LIMIT",
     items: [
       {
-        label: "REPL: Shakespeare",
-        query: 'FIND "Shakespeare" WHERE confidence > 0.5 WEIGHT similarity=high LIMIT 5',
+        label: "REPL: Renaissance art",
+        query: 'FIND "Renaissance Leonardo Mona Lisa" WHERE confidence > 0.5 WEIGHT similarity=high LIMIT 5',
         syntax: "cql",
         namespace: "repl",
         mode: "general",
-        description: "CQL equivalent of pipe search:culture claims from Wikipedia data",
+        description: "CQL search:culture claims about Renaissance art from Wikipedia data",
       },
       {
-        label: "REPL: machine learning",
-        query: 'FIND "machine learning" WHERE confidence > 0.8 LIMIT 10',
+        label: "REPL: web + blockchain",
+        query: 'FIND "web blockchain transistor" WHERE confidence > 0.7 LIMIT 10',
         syntax: "cql",
         namespace: "repl",
         mode: "general",
@@ -205,29 +205,6 @@ export default function ReplTab() {
             onModeChange={setMode}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className={`px-3 py-1.5 text-xs rounded transition-colors ${
-              showHelp ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-            }`}
-          >
-            Syntax
-          </button>
-          <button
-            onClick={handleReset}
-            className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors"
-          >
-            Reset
-          </button>
-          <button
-            onClick={handleExecute}
-            disabled={isExecuting || !query.trim()}
-            className="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            {isExecuting ? 'Running...' : 'Execute'}
-          </button>
-        </div>
       </div>
 
       {/* Example queries:grouped by syntax */}
@@ -268,6 +245,39 @@ export default function ReplTab() {
               onExecute={handleExecute}
               parseError={parseError}
             />
+            {/* Action bar: tight to query box */}
+            <div className="flex items-center justify-end gap-2 px-4 pb-3">
+              <button
+                onClick={() => setShowHelp(!showHelp)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors ${
+                  showHelp ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+                Syntax
+              </button>
+              <button
+                onClick={handleReset}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                </svg>
+                Reset
+              </button>
+              <button
+                onClick={handleExecute}
+                disabled={isExecuting || !query.trim()}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                </svg>
+                {isExecuting ? 'Running...' : 'Execute'}
+              </button>
+            </div>
           </div>
 
           {/* Results area */}

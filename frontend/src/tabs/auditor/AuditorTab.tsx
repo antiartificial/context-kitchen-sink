@@ -20,13 +20,13 @@ type SubView =
   | "active-learning";
 
 const navItems: { id: SubView; label: string; short: string; icon: string }[] = [
-  { id: "narrative",       label: "Narrative",       short: "Narrative",  icon: "N" },
-  { id: "belief-diff",     label: "Belief Diff",     short: "Diff",       icon: "D" },
-  { id: "gaps",            label: "Knowledge Gaps",  short: "Gaps",       icon: "G" },
-  { id: "calibration",     label: "Calibration",     short: "Calib",      icon: "C" },
-  { id: "retract",         label: "Retract Source",   short: "Retract",    icon: "R" },
-  { id: "gdpr",            label: "GDPR Erasure",    short: "GDPR",       icon: "E" },
-  { id: "active-learning", label: "Active Learning", short: "Learn",      icon: "L" },
+  { id: "narrative",       label: "Narrative",       short: "Narrative",  icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
+  { id: "belief-diff",     label: "Belief Diff",     short: "Diff",       icon: "M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" },
+  { id: "gaps",            label: "Knowledge Gaps",  short: "Gaps",       icon: "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" },
+  { id: "calibration",     label: "Calibration",     short: "Calib",      icon: "M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" },
+  { id: "retract",         label: "Retract Source",   short: "Retract",    icon: "M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.374-6.375a1.125 1.125 0 010-1.59L9.42 4.83a1.125 1.125 0 011.59 0l6.375 6.375a1.125 1.125 0 010 1.59l-6.375 6.375a1.125 1.125 0 01-1.59 0z" },
+  { id: "gdpr",            label: "GDPR Erasure",    short: "GDPR",       icon: "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" },
+  { id: "active-learning", label: "Active Learning", short: "Learn",      icon: "M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" },
 ];
 
 export default function AuditorTab() {
@@ -158,12 +158,15 @@ export default function AuditorTab() {
             <button
               key={item.id}
               onClick={() => setActiveView(item.id)}
-              className={`w-full text-left px-4 py-2 text-sm transition-all ${
+              className={`w-full text-left px-4 py-2 text-sm transition-all inline-flex items-center gap-2 ${
                 activeView === item.id
                   ? "bg-[#6366f1]/10 text-white border-r-2 border-[#6366f1] font-medium"
                   : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
               } ${glowView === item.id ? "animate-tab-glow" : ""}`}
             >
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+              </svg>
               {item.label}
             </button>
           ))}

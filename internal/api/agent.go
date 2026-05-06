@@ -254,7 +254,8 @@ func (s *Server) handleAgentAddNoise(w http.ResponseWriter, r *http.Request) {
 		"Briefly lost train of thought",
 	}
 
-	// Add noise memories
+	// Add noise memories with unique vectors each call
+	offset := int(time.Now().UnixNano() % 1_000_000)
 	for i := 0; i < reqBody.Count; i++ {
 		content := noiseContent[rand.Intn(len(noiseContent))]
 		confidence := 0.3 + rand.Float64()*0.4 // 0.3 to 0.7
@@ -267,7 +268,7 @@ func (s *Server) handleAgentAddNoise(w http.ResponseWriter, r *http.Request) {
 				"source_id": "agent:noise-generator",
 				"mem_type":  "episodic",
 			},
-			Vector:     seed.TopicVector(seed.TopicAuth, i+1000),
+			Vector:     seed.TopicVector(seed.TopicAuth, offset+i),
 			Confidence: confidence,
 			ValidFrom:  time.Now(),
 			MemType:    advanced.MemoryEpisodic,

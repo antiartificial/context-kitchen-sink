@@ -104,7 +104,7 @@ export default function ClaimWriter({ sources, onWrite }: ClaimWriterProps) {
             : "text-red-400 bg-red-500/10"
         }`}>
           {result.admitted ? "Admitted" : "Rejected"}
-          {result.reason && ` — ${result.reason}`}
+          {result.reason && `: ${result.reason}`}
           {result.conflict_ids && result.conflict_ids.length > 0 && (
             <span className="text-orange-400 ml-1">({result.conflict_ids.length} conflicts)</span>
           )}

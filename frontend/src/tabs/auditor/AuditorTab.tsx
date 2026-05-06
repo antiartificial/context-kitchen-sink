@@ -96,9 +96,9 @@ export default function AuditorTab() {
         </div>
         <p className="text-[11px] text-gray-500 leading-relaxed mb-2">
           A drug trial publishes promising results. A meta-analysis agrees. Then the
-          lead researcher&rsquo;s earlier study is retracted for fabricated data. The FDA
+          lead researcher's earlier study is retracted for fabricated data. The FDA
           issues a cautious advisory, and patients report mixed real-world outcomes.
-          How do you decide what to trust &mdash; and how do you <em>prove</em> your
+          How do you decide what to trust, and how do you <em>prove</em> your
           reasoning is sound?
         </p>
         <p className="text-xs text-gray-400 leading-relaxed mb-2">

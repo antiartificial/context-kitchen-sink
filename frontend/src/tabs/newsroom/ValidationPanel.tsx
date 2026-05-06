@@ -81,7 +81,7 @@ export default function ValidationPanel({ sources, onValidate }: ValidationPanel
         <div className={`text-xs px-2 py-1.5 rounded ${
           result.validated ? "text-green-400 bg-green-500/10" : "text-red-400 bg-red-500/10"
         }`}>
-          {result.validated ? "Validated" : "Refuted"} — credibility{" "}
+          {result.validated ? "Validated" : "Refuted"}: credibility{" "}
           {(result.oldCredibility * 100).toFixed(1)}% → {(result.newCredibility * 100).toFixed(1)}%
         </div>
       )}

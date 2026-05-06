@@ -33,7 +33,7 @@ export default function CalibrationView() {
           Calibration Check
         </h4>
         <p className="text-xs text-gray-500 mb-2">
-          When the system says it&rsquo;s 80% confident, is it right about 80% of the time?
+          When the system says it's 80% confident, is it right about 80% of the time?
           Calibration measures whether the confidence scores are honest. A well-calibrated
           system is trustworthy; a poorly calibrated one is overconfident or underconfident.
         </p>
@@ -44,7 +44,7 @@ export default function CalibrationView() {
           0.1 is good, over 0.25 is concerning).{" "}
           <em>ECE</em> (avg. error) tells you how off the system is on average.{" "}
           <em>MCE</em> (max error) flags the worst-case confidence bucket. The chart
-          plots predicted vs. actual &mdash; points on the diagonal line mean perfect
+          plots predicted vs. actual. Points on the diagonal line mean perfect
           calibration.
         </p>
         <p className="text-[11px] text-gray-600 mb-4">

@@ -6,10 +6,10 @@ interface NamespaceToggleProps {
 }
 
 const namespaces = [
-  { value: 'repl', label: 'REPL', hint: 'Wikipedia corpus — science, history, tech, culture' },
-  { value: 'newsroom', label: 'Newsroom', hint: 'Acme Cloud evaluation — 5 competing sources' },
-  { value: 'agent', label: 'Agent', hint: 'Coder agent — auth refactor episodic memories' },
-  { value: 'auditor', label: 'Auditor', hint: 'Pharma trial — 25 claims, 5 sources' },
+  { value: 'repl', label: 'REPL', hint: 'Wikipedia corpus:science, history, tech, culture' },
+  { value: 'newsroom', label: 'Newsroom', hint: 'Acme Cloud evaluation:5 competing sources' },
+  { value: 'agent', label: 'Agent', hint: 'Coder agent:auth refactor episodic memories' },
+  { value: 'auditor', label: 'Auditor', hint: 'Pharma trial:25 claims, 5 sources' },
 ];
 
 const modes = [

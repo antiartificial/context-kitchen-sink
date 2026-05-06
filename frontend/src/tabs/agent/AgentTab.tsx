@@ -12,7 +12,7 @@ export default function AgentTab() {
   const [_timeline, setTimeline] = useState<TimelinePoint[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isResetting, setIsResetting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -27,22 +27,24 @@ export default function AgentTab() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchMemories = async () => {
-      setIsLoading(true);
       try {
         const asOf = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
         const queryParam = searchQuery ? `&query=${encodeURIComponent(searchQuery)}` : "";
         const data = await api.get<{ memories: Memory[] }>(
           `/agent/memories?as_of=${asOf}${queryParam}`
         );
-        setMemories(data.memories);
+        if (!cancelled) {
+          setMemories(data.memories);
+          setInitialLoad(false);
+        }
       } catch (err) {
         console.error("Failed to fetch memories:", err);
-      } finally {
-        setIsLoading(false);
       }
     };
     fetchMemories();
+    return () => { cancelled = true; };
   }, [hoursAgo, searchQuery]);
 
   const handleReset = async () => {
@@ -139,7 +141,7 @@ export default function AgentTab() {
       {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          {isLoading ? (
+          {initialLoad && memories.length === 0 ? (
             <div className="bg-gray-900 rounded-lg p-8 text-center text-gray-400">
               Loading memories...
             </div>

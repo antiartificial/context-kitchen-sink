@@ -61,11 +61,11 @@ export default function ActiveLearning() {
           Active Learning
         </h4>
         <p className="text-xs text-gray-500 mb-2">
-          You can&rsquo;t investigate everything at once. This tool prioritizes where to
+          You can't investigate everything at once. This tool prioritizes where to
           focus next, ranked by impact. Each suggestion is one of four types:{" "}
-          <em>Verify Claim</em> (an important claim that hasn&rsquo;t been independently
-          confirmed), <em>Refresh Stale</em> (evidence that&rsquo;s getting old),{" "}
-          <em>Low Confidence</em> (claims the system isn&rsquo;t sure about), or{" "}
+          <em>Verify Claim</em> (an important claim that hasn't been independently
+          confirmed), <em>Refresh Stale</em> (evidence that's getting old),{" "}
+          <em>Low Confidence</em> (claims the system isn't sure about), or{" "}
           <em>High Utility</em> (topics where new data would have the biggest downstream
           impact).
         </p>

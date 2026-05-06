@@ -48,16 +48,16 @@ export default function GapsView() {
           Knowledge Gaps
         </h4>
         <p className="text-xs text-gray-500 mb-2">
-          Spot the blind spots. Maybe there&rsquo;s plenty of data on efficacy but almost
+          Spot the blind spots. Maybe there's plenty of data on efficacy but almost
           nothing on long-term side effects, or the most recent evidence is months old.
           This tool finds areas where the knowledge base is thin, outdated, or uncertain
-          &mdash; so you know where to look next.
+          so you know where to look next.
         </p>
         <p className="text-xs text-gray-500 mb-2">
           <strong className="text-gray-400">Reading the results:</strong>{" "}
           <em>Coverage Score</em> is the overall completeness (higher is better; below 50%
           means major blind spots). Each gap shows a <em>Density Score</em> (how sparse
-          the data is in that area &mdash; lower = emptier), a <em>Confidence Gap</em>
+          the data is in that area, lower = emptier), a <em>Confidence Gap</em>
           (how uncertain existing claims are), and a <em>Temporal Gap</em> (how long since
           that topic was last updated).
         </p>
@@ -69,7 +69,7 @@ export default function GapsView() {
         <p className="text-xs text-gray-500 mb-6">
           <strong className="text-gray-400">Adjusting the sliders:</strong>{" "}
           <em>Top K</em> controls how many claims to scan (higher = more thorough, slower).{" "}
-          <em>Min Gap Size</em> sets the threshold for what counts as a gap &mdash; lower
+          <em>Min Gap Size</em> sets the threshold for what counts as a gap. Lower
           values surface smaller blind spots, higher values only show major ones.{" "}
           <em>Max Gaps</em> limits how many results to return.
         </p>
@@ -164,7 +164,7 @@ export default function GapsView() {
               {report.coverage_score >= 0.8
                 ? "The knowledge base has strong coverage. Most topics have adequate data."
                 : report.coverage_score >= 0.5
-                ? "Moderate coverage — some areas are well-covered but others need attention."
+                ? "Moderate coverage. Some areas are well-covered but others need attention."
                 : "Significant gaps in coverage. Many topics lack sufficient data to draw reliable conclusions."
               }
             </p>
@@ -235,7 +235,7 @@ function GapCard({ gap, formatTemporalGap }: GapCardProps) {
     : "Existing claims are fairly confident";
 
   const temporalLabel = gap.temporal_gap_seconds >= 86400 * 30
-    ? "No recent data — this area is going stale"
+    ? "No recent data. This area is going stale"
     : gap.temporal_gap_seconds >= 86400
     ? "Last updated days ago"
     : "Recently updated";

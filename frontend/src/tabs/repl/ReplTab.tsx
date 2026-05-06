@@ -33,7 +33,7 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
         syntax: "pipe",
         namespace: "repl",
         mode: "general",
-        description: "General namespace — search Wikipedia-sourced science claims",
+        description: "General namespace:search Wikipedia-sourced science claims",
       },
       {
         label: "REPL: history + recency",
@@ -49,7 +49,7 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
         syntax: "pipe",
         namespace: "newsroom",
         mode: "belief_system",
-        description: "Belief system — competing vendor vs. engineer performance claims",
+        description: "Belief system:competing vendor vs. engineer performance claims",
       },
       {
         label: "Newsroom: pricing",
@@ -65,7 +65,7 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
         syntax: "pipe",
         namespace: "agent",
         mode: "agent_memory",
-        description: "Agent memory — episodic memories from an auth module refactor",
+        description: "Agent memory:episodic memories from an auth module refactor",
       },
       {
         label: "Agent: deployment",
@@ -103,7 +103,7 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
         syntax: "cql",
         namespace: "repl",
         mode: "general",
-        description: "CQL equivalent of pipe search — culture claims from Wikipedia data",
+        description: "CQL equivalent of pipe search:culture claims from Wikipedia data",
       },
       {
         label: "REPL: machine learning",
@@ -119,7 +119,7 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
         syntax: "cql",
         namespace: "newsroom",
         mode: "belief_system",
-        description: "CQL on belief system — vendor says 99.99%, engineer measured 99.48%",
+        description: "CQL on belief system:vendor says 99.99%, engineer measured 99.48%",
       },
       {
         label: "Auditor: graph traversal",
@@ -127,7 +127,7 @@ const EXAMPLE_GROUPS: ExampleGroup[] = [
         syntax: "cql",
         namespace: "auditor",
         mode: "belief_system",
-        description: "CQL with edge traversal — find supporting evidence chains",
+        description: "CQL with edge traversal:find supporting evidence chains",
       },
     ],
   },
@@ -230,7 +230,7 @@ export default function ReplTab() {
         </div>
       </div>
 
-      {/* Example queries — grouped by syntax */}
+      {/* Example queries:grouped by syntax */}
       <div className="px-4 py-2 border-b border-gray-800 overflow-x-auto">
         <div className="space-y-1.5">
           {EXAMPLE_GROUPS.map((group) => (
@@ -293,17 +293,17 @@ export default function ReplTab() {
                   <div className="text-left grid grid-cols-2 gap-4 text-[11px] text-gray-500 pt-2">
                     <div>
                       <h4 className="text-gray-400 font-medium mb-1">Two query syntaxes</h4>
-                      <p className="mb-1"><span className="text-blue-400">Pipe</span> &mdash; Unix-style chaining:
+                      <p className="mb-1"><span className="text-blue-400">Pipe</span>:Unix-style chaining:
                         <code className="text-gray-400 ml-1">search &quot;term&quot; | where ... | top N</code></p>
-                      <p><span className="text-blue-400">CQL</span> &mdash; SQL-like:
+                      <p><span className="text-blue-400">CQL</span>:SQL-like:
                         <code className="text-gray-400 ml-1">FIND &quot;term&quot; WHERE ... LIMIT N</code></p>
                     </div>
                     <div>
                       <h4 className="text-gray-400 font-medium mb-1">Namespaces &amp; modes</h4>
-                      <p><span className="text-green-400">REPL</span> &mdash; Wikipedia reference data (general mode)</p>
-                      <p><span className="text-green-400">Newsroom</span> &mdash; Acme Cloud vendor eval (belief system)</p>
-                      <p><span className="text-green-400">Agent</span> &mdash; Auth refactor memories (agent memory)</p>
-                      <p><span className="text-green-400">Auditor</span> &mdash; Pharma trial data (belief system)</p>
+                      <p><span className="text-green-400">REPL</span>:Wikipedia reference data (general mode)</p>
+                      <p><span className="text-green-400">Newsroom</span>:Acme Cloud vendor eval (belief system)</p>
+                      <p><span className="text-green-400">Agent</span>:Auth refactor memories (agent memory)</p>
+                      <p><span className="text-green-400">Auditor</span>:Pharma trial data (belief system)</p>
                     </div>
                   </div>
                 </div>
@@ -312,7 +312,7 @@ export default function ReplTab() {
           </div>
         </div>
 
-        {/* Syntax Help Sidebar — viewport height */}
+        {/* Syntax Help Sidebar:viewport height */}
         {showHelp && (
           <div className="w-80 border-l border-gray-800 overflow-y-auto flex-shrink-0"
                style={{ maxHeight: 'calc(100vh - 230px)' }}>

@@ -1,5 +1,4 @@
-import { useState, useCallback } from "react";
-import { usePolling } from "../../hooks/usePolling";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "../../api";
 import type { Source, Claim, ConflictCluster } from "../../types";
 import AnimatedCount from "../../components/AnimatedCount";
@@ -44,7 +43,7 @@ export default function NewsroomTab() {
     }
   };
 
-  usePolling(fetchData, 3000);
+  useEffect(() => { fetchData(); }, []);
 
   const handleReset = async () => {
     setIsResetting(true);
@@ -89,7 +88,7 @@ export default function NewsroomTab() {
           When information comes from multiple sources, who do you trust?
           A vendor says their API is sub-10ms. An analyst agrees. Then a respected engineer
           publishes benchmarks showing 47ms. A random blog post backs that up.
-          The spec sheet and the data disagree &mdash; <em>which claim wins?</em>
+          The spec sheet and the data disagree. <em>Which claim wins?</em>
         </p>
         <p className="text-xs text-gray-400 leading-relaxed mb-2">
           <strong className="text-gray-300">Scenario:</strong> Evaluating Acme Cloud.

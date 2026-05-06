@@ -36,13 +36,13 @@ export default function BeliefDiffView() {
         <p className="text-xs text-gray-500 mb-2">
           Find every place where sources disagree. The trial says the drug is safe; the
           withdrawn study claimed side effects. This tool lays those contradictions
-          side-by-side so you can see what&rsquo;s actually in dispute.
+          side-by-side so you can see what's actually in dispute.
         </p>
         <p className="text-xs text-gray-500 mb-2">
           <strong className="text-gray-400">What the numbers mean:</strong>{" "}
           <em>Contradiction Weight</em> measures how directly two claims oppose each
           other (higher = stronger disagreement). <em>Credibility Gap</em> shows how
-          far apart the sources are in trustworthiness &mdash; a large gap means a
+          far apart the sources are in trustworthiness. A large gap means a
           trusted source disagrees with a less trusted one, making the conflict easier
           to resolve. A small gap means both sides are equally credible, requiring
           more investigation.
@@ -208,8 +208,8 @@ function ConflictCard({ conflict }: ConflictCardProps) {
           {conflict.credibility_gap >= 0.3
             ? "The large credibility gap suggests the more trusted source likely prevails."
             : conflict.credibility_gap >= 0.1
-            ? "Both sources have similar credibility — this conflict needs more evidence to resolve."
-            : "Both sources are equally credible — this is a genuine open question."
+            ? "Both sources have similar credibility. This conflict needs more evidence to resolve."
+            : "Both sources are equally credible. This is a genuine open question."
           }
         </p>
       </div>

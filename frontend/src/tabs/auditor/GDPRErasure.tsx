@@ -65,7 +65,7 @@ export default function GDPRErasure({ onErase }: GDPRErasureProps) {
               GDPR Compliance
             </h5>
             <p className="text-sm text-blue-300/80">
-              Right to erasure (Article 17) — complete removal of personal data while maintaining audit trail compliance.
+              Right to erasure (Article 17): complete removal of personal data while maintaining audit trail compliance.
             </p>
           </div>
         </div>
@@ -101,17 +101,17 @@ export default function GDPRErasure({ onErase }: GDPRErasureProps) {
       {/* Erasure form */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
         <h4 className="text-lg font-semibold text-gray-100 mb-2">
-          GDPR &ldquo;Right to Be Forgotten&rdquo;
+          GDPR "Right to Be Forgotten"
         </h4>
         <p className="text-xs text-gray-500 mb-2">
           Privacy regulations like GDPR require that any person can request complete
-          deletion of their data. This goes beyond simple retraction &mdash; it removes
+          deletion of their data. This goes beyond simple retraction: it removes
           all nodes, vectors, edges, and redacts audit logs while preserving a
           compliance-safe record that erasure occurred.
         </p>
         <p className="text-[11px] text-gray-600 mb-6">
           Technical: full Article 17 erasure across graph store, vector index, edge
-          index, and event log. Try &ldquo;patient:user-789&rdquo; to see the complete
+          index, and event log. Try "patient:user-789" to see the complete
           erasure report.
         </p>
 

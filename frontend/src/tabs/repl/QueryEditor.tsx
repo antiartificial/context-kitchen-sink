@@ -10,6 +10,64 @@ interface QueryEditorProps {
   parseError: string | null;
 }
 
+// ── Autocomplete dictionaries ────────────────────────────────────
+
+const PIPE_STAGES = ['search', 'where', 'weight', 'top', 'expand', 'rerank', 'return'];
+const PIPE_MODIFIERS = ['in', 'as', 'of', 'known', 'at', 'mode', 'depth', 'ago'];
+const PIPE_FIELD_LIST = ['confidence', 'recency', 'labels', 'source', 'similarity', 'utility', 'valid_time', 'valid_until'];
+const PIPE_PRESET_LIST = ['high', 'medium', 'low', 'off'];
+const PIPE_OP_WORDS = ['between', 'and'];
+const PIPE_ALL_WORDS = [...PIPE_STAGES, ...PIPE_MODIFIERS, ...PIPE_FIELD_LIST, ...PIPE_PRESET_LIST, ...PIPE_OP_WORDS];
+
+const CQL_KW = ['FIND', 'WHERE', 'FOLLOW', 'WEIGHT', 'LIMIT', 'RERANK', 'RETURN', 'NAMESPACE', 'EXCLUDE', 'SOURCES', 'DEPTH', 'WITH'];
+const CQL_OP_WORDS = ['AND', 'OR', 'NOT', 'LIKE', 'BETWEEN', 'IS', 'NULL'];
+const CQL_FIELD_LIST = ['confidence', 'recency', 'labels', 'source', 'similarity', 'utility', 'valid_time', 'valid_until', 'label'];
+const CQL_ALL_WORDS = [...CQL_KW, ...CQL_OP_WORDS, ...CQL_FIELD_LIST, ...PIPE_PRESET_LIST];
+
+function getWordAtCursor(text: string, pos: number): { start: number; end: number; word: string } {
+  let start = pos;
+  while (start > 0 && /[\w_]/.test(text[start - 1])) start--;
+  return { start, end: pos, word: text.slice(start, pos) };
+}
+
+function getContextSuggestions(text: string, pos: number, syn: 'pipe' | 'cql'): string[] {
+  const { word } = getWordAtCursor(text, pos);
+  if (word.length < 1) return [];
+
+  const before = text.slice(0, pos - word.length).trimEnd();
+  const lower = word.toLowerCase();
+
+  if (syn === 'pipe') {
+    let pool: string[];
+    if (before === '' || before.endsWith('|')) {
+      pool = PIPE_STAGES;
+    } else if (/\b(where)\s*$/i.test(before)) {
+      pool = PIPE_FIELD_LIST;
+    } else if (/\b(weight)\s*$/i.test(before) || before.endsWith(',')) {
+      pool = PIPE_FIELD_LIST;
+    } else if (before.endsWith(':') || before.endsWith('=')) {
+      pool = PIPE_PRESET_LIST;
+    } else {
+      pool = PIPE_ALL_WORDS;
+    }
+    return pool.filter(c => c.toLowerCase().startsWith(lower) && c.toLowerCase() !== lower).slice(0, 8);
+  } else {
+    let pool: string[];
+    if (before === '') {
+      pool = CQL_KW;
+    } else if (/\b(WHERE)\s*$/i.test(before)) {
+      pool = CQL_FIELD_LIST;
+    } else if (/\b(WEIGHT)\s*$/i.test(before) || before.endsWith(',')) {
+      pool = CQL_FIELD_LIST;
+    } else if (before.endsWith('=')) {
+      pool = PIPE_PRESET_LIST;
+    } else {
+      pool = CQL_ALL_WORDS;
+    }
+    return pool.filter(c => c.toLowerCase().startsWith(lower) && c.toLowerCase() !== lower).slice(0, 8);
+  }
+}
+
 export function QueryEditor({
   value,
   onChange,
@@ -20,6 +78,9 @@ export function QueryEditor({
 }: QueryEditorProps) {
   const [parseError, setParseError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [cursorPos, setCursorPos] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const parseTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -57,6 +118,27 @@ export function QueryEditor({
     };
   }, [value, syntax]);
 
+  // Update suggestions when value or cursor changes
+  useEffect(() => {
+    const sug = getContextSuggestions(value, cursorPos, syntax);
+    setSuggestions(sug);
+    setSelectedIdx(0);
+  }, [value, cursorPos, syntax]);
+
+  const acceptSuggestion = useCallback((suggestion: string) => {
+    const { start, end } = getWordAtCursor(value, cursorPos);
+    const newValue = value.slice(0, start) + suggestion + value.slice(end);
+    const newPos = start + suggestion.length;
+    onChange(newValue);
+    setSuggestions([]);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = newPos;
+        textareaRef.current.focus();
+      }
+    }, 0);
+  }, [value, cursorPos, onChange]);
+
   // Sync scroll between textarea and pre
   const handleScroll = () => {
     if (textareaRef.current && preRef.current) {
@@ -65,11 +147,44 @@ export function QueryEditor({
     }
   };
 
+  const handleCursorMove = () => {
+    if (textareaRef.current) {
+      setCursorPos(textareaRef.current.selectionStart);
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault();
       onExecute();
-    } else if (e.key === 'Tab' && e.shiftKey) {
+      return;
+    }
+
+    if (e.key === 'Escape' && suggestions.length > 0) {
+      e.preventDefault();
+      setSuggestions([]);
+      return;
+    }
+
+    if (suggestions.length > 0) {
+      if (e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        acceptSuggestion(suggestions[selectedIdx]);
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIdx((i) => Math.min(i + 1, suggestions.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIdx((i) => Math.max(i - 1, 0));
+        return;
+      }
+    }
+
+    if (e.key === 'Tab' && e.shiftKey) {
       e.preventDefault();
       handleFormat();
     } else if (e.key === 'Tab') {
@@ -92,7 +207,17 @@ export function QueryEditor({
     onChange(formatted);
   }, [value, syntax, onChange]);
 
+  // Ghost text: the remaining chars of the top suggestion, shown inline
+  const ghostSuffix = suggestions.length > 0
+    ? suggestions[selectedIdx].slice(getWordAtCursor(value, cursorPos).word.length)
+    : '';
+  const cursorAtEnd = cursorPos === value.length;
+
   const highlightedCode = syntax === 'pipe' ? highlightPipe(value) : highlightCQL(value);
+  const highlightedWithGhost = cursorAtEnd && ghostSuffix
+    ? highlightedCode + `<span class="text-gray-600 opacity-60">${escapeHtml(ghostSuffix)}</span>`
+    : highlightedCode;
+
   const lineCount = value.split('\n').length;
   const lines = Array.from({ length: Math.max(lineCount, 5) }, (_, i) => i + 1);
 
@@ -189,20 +314,22 @@ export function QueryEditor({
 
           {/* Editor area */}
           <div className="flex-1 relative min-h-[120px] max-h-[300px]">
-            {/* Highlighted code (background) */}
+            {/* Highlighted code + ghost text (background) */}
             <pre
               ref={preRef}
               className="absolute inset-0 py-4 px-4 font-mono text-sm leading-6 overflow-auto whitespace-pre-wrap break-words pointer-events-none"
               style={{ color: 'transparent' }}
-              dangerouslySetInnerHTML={{ __html: highlightedCode }}
+              dangerouslySetInnerHTML={{ __html: highlightedWithGhost }}
             />
 
             {/* Textarea (foreground, transparent text) */}
             <textarea
               ref={textareaRef}
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e) => { onChange(e.target.value); handleCursorMove(); }}
               onKeyDown={handleKeyDown}
+              onKeyUp={handleCursorMove}
+              onClick={handleCursorMove}
               onScroll={handleScroll}
               placeholder={placeholder}
               className="absolute inset-0 py-4 px-4 font-mono text-sm leading-6 bg-transparent resize-none outline-none caret-white overflow-auto whitespace-pre-wrap break-words"
@@ -214,6 +341,29 @@ export function QueryEditor({
             />
           </div>
         </div>
+
+        {/* Autocomplete dropdown */}
+        {suggestions.length > 0 && (
+          <div className="border-t border-gray-800 bg-gray-950 px-2 py-1.5 flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-gray-600 mr-1">Tab</span>
+            {suggestions.map((s, i) => (
+              <button
+                key={s}
+                onMouseDown={(e) => { e.preventDefault(); acceptSuggestion(s); }}
+                className={`px-2 py-0.5 rounded text-xs font-mono transition-colors ${
+                  i === selectedIdx
+                    ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800 border border-transparent'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+            <span className="text-[10px] text-gray-600 ml-auto">
+              <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-500 text-[9px]">↑↓</kbd> navigate
+            </span>
+          </div>
+        )}
 
         {/* Parse error */}
         {displayError && (

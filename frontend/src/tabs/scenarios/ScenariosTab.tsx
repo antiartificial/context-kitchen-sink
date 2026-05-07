@@ -162,10 +162,13 @@ function ScenarioView({ scenario }: { scenario: typeof SCENARIOS[number] }) {
 
       {/* Diagram (scenario-specific) */}
       {scenario.id === "disambiguation" && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-medium text-gray-400">How labels separate meaning</h4>
-          <DisambiguationGraph />
-        </div>
+        <>
+          <div className="space-y-2">
+            <h4 className="text-xs font-medium text-gray-400">How labels separate meaning</h4>
+            <DisambiguationGraph />
+          </div>
+          <LabelingGuide />
+        </>
       )}
 
       {scenario.id === "provenance" && (
@@ -186,30 +189,79 @@ function ScenarioView({ scenario }: { scenario: typeof SCENARIOS[number] }) {
 
 function TemporalDiagram() {
   const versions = [
-    { label: "v1", x: 5, age: "2 years", opacity: 0.15 },
-    { label: "v2", x: 30, age: "6 months", opacity: 0.3 },
-    { label: "v3", x: 60, age: "2 months", opacity: 0.6 },
-    { label: "v4", x: 90, age: "2 days", opacity: 1 },
+    { label: "v1", x: 10, age: "2 years ago", opacity: 0.15, detail: "pip install acme-sdk==1.0", status: "expired" },
+    { label: "v2", x: 33, age: "6 months ago", opacity: 0.3, detail: "pip install acme-sdk==2.0", status: "decayed" },
+    { label: "v3", x: 60, age: "2 months ago", opacity: 0.55, detail: "import acme from 'acme-sdk'", status: "fading" },
+    { label: "v4", x: 88, age: "2 days ago", opacity: 1, detail: "replace init() with connect()", status: "current" },
   ];
+  const statusColors: Record<string, string> = {
+    expired: "text-red-500/50",
+    decayed: "text-orange-400/50",
+    fading: "text-yellow-400/60",
+    current: "text-green-400",
+  };
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-medium text-gray-400">Temporal decay in action</h4>
-      <div className="relative w-full h-20 bg-gray-950 rounded-lg border border-gray-800 overflow-hidden">
-        <svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none">
-          <line x1="0" y1="20" x2="100" y2="20" stroke="rgb(55, 65, 81)" strokeWidth="0.3" />
-          {versions.map((v, i) => (
-            <g key={i} opacity={v.opacity}>
-              <circle cx={v.x} cy={12} r="3" fill="rgb(99, 102, 241)" stroke="rgb(129, 140, 248)" strokeWidth="0.3" />
-              <text x={v.x} y={13} textAnchor="middle" dominantBaseline="central" className="fill-white text-[2.5px] font-bold">{v.label}</text>
-              <text x={v.x} y={24} textAnchor="middle" className="fill-gray-500 text-[2px]">{v.age}</text>
-            </g>
+      <div className="bg-gray-950 rounded-lg border border-gray-800 p-4">
+        {/* Timeline */}
+        <div className="relative w-full h-32">
+          <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+            {/* Timeline axis */}
+            <line x1="5" y1="22" x2="95" y2="22" stroke="rgb(55, 65, 81)" strokeWidth="0.4" />
+            {/* Arrow tip */}
+            <polygon points="95,22 93,20.5 93,23.5" fill="rgb(55, 65, 81)" />
+
+            {/* Decay gradient zones */}
+            <defs>
+              <linearGradient id="decayGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="rgb(239, 68, 68)" stopOpacity="0.1" />
+                <stop offset="50%" stopColor="rgb(234, 179, 8)" stopOpacity="0.05" />
+                <stop offset="100%" stopColor="rgb(34, 197, 94)" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
+            <rect x="5" y="14" width="90" height="16" rx="2" fill="url(#decayGrad)" />
+
+            {/* Version nodes */}
+            {versions.map((v, i) => (
+              <g key={i} opacity={v.opacity} className="transition-opacity duration-500">
+                <circle cx={v.x} cy={22} r="4.5" fill="rgba(99, 102, 241, 0.3)" stroke="rgb(129, 140, 248)" strokeWidth="0.4" />
+                <text x={v.x} y={22.5} textAnchor="middle" dominantBaseline="central" className="fill-white text-[3px] font-bold">
+                  {v.label}
+                </text>
+                <text x={v.x} y={34} textAnchor="middle" className="fill-gray-500 text-[2.3px]">
+                  {v.age}
+                </text>
+                <text x={v.x} y={38} textAnchor="middle" className={`text-[1.8px] ${statusColors[v.status]}`}>
+                  {v.status}
+                </text>
+                {/* Detail text above */}
+                <text x={v.x} y={13} textAnchor="middle" className="fill-gray-400 text-[1.8px]">
+                  {v.detail}
+                </text>
+              </g>
+            ))}
+
+            {/* Labels */}
+            <text x="7" y="46" className="fill-red-400/40 text-[2.2px]">past</text>
+            <text x="92" y="46" textAnchor="end" className="fill-green-400/60 text-[2.2px]">now</text>
+          </svg>
+        </div>
+
+        {/* Retention bars */}
+        <div className="grid grid-cols-4 gap-2 mt-2">
+          {versions.map(v => (
+            <div key={v.label} className="text-center">
+              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mx-2">
+                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${v.opacity * 100}%`, opacity: v.opacity }} />
+              </div>
+              <span className="text-[9px] text-gray-600">{v.label}: {(v.opacity * 100).toFixed(0)}% retained</span>
+            </div>
           ))}
-          <text x="95" y="12" textAnchor="end" className="fill-green-400 text-[2.5px] font-medium">now</text>
-          <text x="5" y="12" textAnchor="start" className="fill-red-400/50 text-[2.5px]">expired</text>
-        </svg>
+        </div>
       </div>
       <p className="text-[10px] text-gray-600 text-center">
-        Older versions fade naturally. No manual cleanup needed.
+        Older versions decay naturally. No manual cleanup, no version-pinning logic. Query with as_of to time-travel.
       </p>
     </div>
   );
@@ -306,6 +358,123 @@ function ErasureDiagram() {
       <p className="text-[10px] text-gray-600 text-center">
         One API call. Everything downstream is cleaned up, with a compliance-ready audit trail.
       </p>
+    </div>
+  );
+}
+
+function LabelingGuide() {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="space-y-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+      >
+        <svg className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+        How do I choose labels? Show the insertion process
+      </button>
+
+      {expanded && (
+        <div className="space-y-4">
+          {/* The mental model */}
+          <div className="bg-gray-950 border border-gray-800 rounded-lg p-4 space-y-3">
+            <h5 className="text-xs font-medium text-gray-200">Thinking about labels</h5>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Labels answer the question: <em className="text-gray-300">"If someone searches for this and gets the wrong thing,
+              what category would have prevented the mistake?"</em> Start with the broadest distinction that matters.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-gray-900 rounded px-3 py-2">
+                <span className="text-[10px] text-indigo-400 font-medium block mb-1">Domain</span>
+                <p className="text-[10px] text-gray-400">What world does this belong to?</p>
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {["ai", "recipe", "finance", "medical"].map(l => (
+                    <span key={l} className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 text-[9px] font-mono">{l}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-gray-900 rounded px-3 py-2">
+                <span className="text-[10px] text-green-400 font-medium block mb-1">Topic</span>
+                <p className="text-[10px] text-gray-400">What specific subject within the domain?</p>
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {["reasoning", "dessert", "pricing", "efficacy"].map(l => (
+                    <span key={l} className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-300 text-[9px] font-mono">{l}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-gray-900 rounded px-3 py-2">
+                <span className="text-[10px] text-amber-400 font-medium block mb-1">Entity</span>
+                <p className="text-[10px] text-gray-400">What specific thing or project?</p>
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {["openai", "strawberry-cake", "acme-cloud", "trial-phase-3"].map(l => (
+                    <span key={l} className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 text-[9px] font-mono">{l}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-indigo-500/5 border border-indigo-500/20 rounded px-3 py-2">
+              <p className="text-[10px] text-indigo-300/80 leading-relaxed">
+                <strong>Rule of thumb:</strong> 2-4 labels per record. One domain, one topic, optional entity.
+                You don't need to get it perfect upfront. Labels can be added later, and queries can combine them.
+              </p>
+            </div>
+          </div>
+
+          {/* What the insertion looks like */}
+          <div className="bg-gray-950 border border-gray-800 rounded-lg p-4 space-y-3">
+            <h5 className="text-xs font-medium text-gray-200">What insertion looks like</h5>
+
+            <div className="space-y-3">
+              {/* Record 1 */}
+              <div className="border border-gray-800 rounded px-3 py-2">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[9px] text-gray-600 uppercase tracking-wider">Record 1</span>
+                  <div className="flex gap-1">
+                    {["ai", "openai", "reasoning"].map(l => (
+                      <span key={l} className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 text-[9px] font-mono">{l}</span>
+                    ))}
+                  </div>
+                </div>
+                <pre className="text-[10px] font-mono text-gray-400 leading-relaxed whitespace-pre-wrap">{`ns.Write(ctx, client.WriteRequest{
+  Content:    "Project Strawberry is OpenAI's reasoning research initiative",
+  SourceID:   "source:arxiv-papers",
+  Labels:     []string{"ai", "openai", "reasoning"},
+  Confidence: 0.92,
+})`}</pre>
+              </div>
+
+              {/* Record 2 */}
+              <div className="border border-gray-800 rounded px-3 py-2">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[9px] text-gray-600 uppercase tracking-wider">Record 2</span>
+                  <div className="flex gap-1">
+                    {["recipe", "dessert", "strawberry"].map(l => (
+                      <span key={l} className="px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-300 text-[9px] font-mono">{l}</span>
+                    ))}
+                  </div>
+                </div>
+                <pre className="text-[10px] font-mono text-gray-400 leading-relaxed whitespace-pre-wrap">{`ns.Write(ctx, client.WriteRequest{
+  Content:    "Classic strawberry shortcake uses fresh berries and whipped cream",
+  SourceID:   "source:recipe-blog",
+  Labels:     []string{"recipe", "dessert", "strawberry"},
+  Confidence: 0.88,
+})`}</pre>
+              </div>
+
+              {/* The query */}
+              <div className="border border-indigo-500/30 bg-indigo-500/5 rounded px-3 py-2">
+                <span className="text-[9px] text-indigo-400 uppercase tracking-wider block mb-1.5">Query with label filter</span>
+                <pre className="text-[10px] font-mono text-indigo-300/80 leading-relaxed whitespace-pre-wrap">{`// Only AI-related results — recipes filtered out
+search "strawberry" | where labels = "ai" | top 5`}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

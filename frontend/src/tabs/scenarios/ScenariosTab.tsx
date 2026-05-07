@@ -203,9 +203,9 @@ function TemporalDiagram() {
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-medium text-gray-400">Temporal decay in action</h4>
-      <div className="bg-gray-950 rounded-lg border border-gray-800 p-4">
+      <div className="bg-gray-950 rounded-lg border border-gray-800 p-5">
         {/* Timeline */}
-        <div className="relative w-full h-32">
+        <div className="relative w-full h-48">
           <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
             {/* Timeline axis */}
             <line x1="5" y1="22" x2="95" y2="22" stroke="rgb(55, 65, 81)" strokeWidth="0.4" />
@@ -225,26 +225,26 @@ function TemporalDiagram() {
             {/* Version nodes */}
             {versions.map((v, i) => (
               <g key={i} opacity={v.opacity} className="transition-opacity duration-500">
-                <circle cx={v.x} cy={22} r="4.5" fill="rgba(99, 102, 241, 0.3)" stroke="rgb(129, 140, 248)" strokeWidth="0.4" />
-                <text x={v.x} y={22.5} textAnchor="middle" dominantBaseline="central" className="fill-white text-[3px] font-bold">
+                <circle cx={v.x} cy={22} r="5.5" fill="rgba(99, 102, 241, 0.3)" stroke="rgb(129, 140, 248)" strokeWidth="0.5" />
+                <text x={v.x} y={22.5} textAnchor="middle" dominantBaseline="central" className="fill-white text-[3.5px] font-bold">
                   {v.label}
                 </text>
-                <text x={v.x} y={34} textAnchor="middle" className="fill-gray-500 text-[2.3px]">
+                <text x={v.x} y={35} textAnchor="middle" className="fill-gray-500 text-[2.8px]">
                   {v.age}
                 </text>
-                <text x={v.x} y={38} textAnchor="middle" className={`text-[1.8px] ${statusColors[v.status]}`}>
+                <text x={v.x} y={40} textAnchor="middle" className={`text-[2.4px] ${statusColors[v.status]}`}>
                   {v.status}
                 </text>
                 {/* Detail text above */}
-                <text x={v.x} y={13} textAnchor="middle" className="fill-gray-400 text-[1.8px]">
+                <text x={v.x} y={11} textAnchor="middle" className="fill-gray-400 text-[2.2px]">
                   {v.detail}
                 </text>
               </g>
             ))}
 
             {/* Labels */}
-            <text x="7" y="46" className="fill-red-400/40 text-[2.2px]">past</text>
-            <text x="92" y="46" textAnchor="end" className="fill-green-400/60 text-[2.2px]">now</text>
+            <text x="7" y="47" className="fill-red-400/40 text-[2.8px]">past</text>
+            <text x="92" y="47" textAnchor="end" className="fill-green-400/60 text-[2.8px]">now</text>
           </svg>
         </div>
 
@@ -421,6 +421,88 @@ function LabelingGuide() {
                 <strong>Rule of thumb:</strong> 2-4 labels per record. One domain, one topic, optional entity.
                 You don't need to get it perfect upfront. Labels can be added later, and queries can combine them.
               </p>
+            </div>
+          </div>
+
+          {/* Confidence explanation */}
+          <div className="bg-gray-950 border border-gray-800 rounded-lg p-4 space-y-3">
+            <h5 className="text-xs font-medium text-gray-200">What does Confidence mean?</h5>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Confidence is your initial estimate of how trustworthy a claim is, on a 0-1 scale.
+              Think of it as a <em className="text-gray-300">prior</em> that the system refines over time through validations and contradictions.
+            </p>
+
+            {/* Scale visualization */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-full h-2 rounded-full bg-gradient-to-r from-red-500/60 via-yellow-500/60 to-green-500/60" />
+              </div>
+              <div className="flex justify-between text-[9px] text-gray-600">
+                <span>0.0 speculative</span>
+                <span>0.5 uncertain</span>
+                <span>0.7 reasonable</span>
+                <span>1.0 verified fact</span>
+              </div>
+            </div>
+
+            {/* Examples */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              <div className="bg-gray-900 rounded px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-300">AI claim: 0.92</span>
+                  <span className="text-[9px] text-green-400">high</span>
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Specific, verifiable fact from an authoritative source (arxiv papers).
+                  "OpenAI's reasoning research initiative" can be confirmed.
+                </p>
+              </div>
+              <div className="bg-gray-900 rounded px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-300">Recipe claim: 0.88</span>
+                  <span className="text-[9px] text-green-400">high-ish</span>
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Mostly factual but has subjectivity ("classic" varies by tradition).
+                  Good source, slight interpretation room.
+                </p>
+              </div>
+              <div className="bg-gray-900 rounded px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-300">User anecdote: 0.55</span>
+                  <span className="text-[9px] text-yellow-400">uncertain</span>
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Single person's experience. Could be accurate for them but not generalizable.
+                </p>
+              </div>
+              <div className="bg-gray-900 rounded px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-300">Marketing copy: 0.40</span>
+                  <span className="text-[9px] text-orange-400">skeptical</span>
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Vendor self-reporting with incentive to exaggerate. Needs independent validation.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-amber-500/5 border border-amber-500/20 rounded px-3 py-2">
+              <p className="text-[10px] text-amber-300/80 leading-relaxed">
+                <strong>Key insight:</strong> The initial confidence is just a starting point. When a source
+                gets validated, confidence in its claims rises. When contradicted or retracted, it drops.
+                Many systems start everything at 0.8 and let the Bayesian updates do the real calibration.
+                The mechanism to adjust matters more than getting the initial value perfect.
+              </p>
+            </div>
+
+            {/* How effective score is computed */}
+            <div className="bg-gray-900 rounded px-3 py-2">
+              <span className="text-[9px] text-gray-600 uppercase tracking-wider block mb-1">Effective retrieval score</span>
+              <pre className="text-[10px] font-mono text-gray-400">{`effective_score = base_confidence × source_credibility × decay_factor
+
+Example: claim confidence 0.92, source validated 3x (credibility 0.95), 2 days old (decay 0.98)
+→ 0.92 × 0.95 × 0.98 = 0.856 effective score at retrieval`}</pre>
             </div>
           </div>
 

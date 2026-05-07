@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useLayoutEffect, useCallback } from "react";
 import type { Scenario } from "./scenarioData";
 
 interface BeforeAfterProps {
@@ -18,42 +18,80 @@ function stableColor(label: string): string {
 
 export default function BeforeAfter({ scenario }: BeforeAfterProps) {
   const [showAfter, setShowAfter] = useState(false);
-  const [rendered, setRendered] = useState(false);
-  const [barWidths, setBarWidths] = useState<number[]>([]);
-  const prevView = useRef<"before" | "after">("before");
+  const [barWidths, setBarWidths] = useState<Map<string, number>>(new Map());
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const prevPositions = useRef<Map<string, number>>(new Map());
+  const isFirstRender = useRef(true);
+
   const view = showAfter ? scenario.after : scenario.before;
-  const viewKey = showAfter ? "after" : "before";
 
-  useEffect(() => {
-    setRendered(false);
-    setBarWidths(view.items.map(() => 0));
+  const handleToggle = useCallback((next: boolean) => {
+    const positions = new Map<string, number>();
+    itemRefs.current.forEach((el, key) => {
+      positions.set(key, el.getBoundingClientRect().top);
+    });
+    prevPositions.current = positions;
+    setBarWidths(new Map());
+    setShowAfter(next);
+  }, []);
 
-    const showTimer = requestAnimationFrame(() => {
-      setRendered(true);
-      const staggerTimers: ReturnType<typeof setTimeout>[] = [];
+  useLayoutEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      const timers: ReturnType<typeof setTimeout>[] = [];
       view.items.forEach((item, i) => {
-        const t = setTimeout(() => {
-          setBarWidths(prev => {
-            const next = [...prev];
-            next[i] = item.score * 100;
-            return next;
-          });
-        }, 150 + i * 120);
-        staggerTimers.push(t);
+        timers.push(setTimeout(() => {
+          setBarWidths(prev => new Map(prev).set(item.label, item.score * 100));
+        }, 100 + i * 100));
       });
-      prevView.current = viewKey;
-      return () => staggerTimers.forEach(clearTimeout);
+      return () => timers.forEach(clearTimeout);
+    }
+
+    const hasPrev = prevPositions.current.size > 0;
+
+    itemRefs.current.forEach((el, key) => {
+      if (!hasPrev) return;
+      const prevTop = prevPositions.current.get(key);
+      if (prevTop === undefined) {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(12px)";
+        el.style.transition = "none";
+        el.offsetHeight;
+        el.style.transition = "opacity 350ms 100ms, transform 350ms 100ms";
+        el.style.opacity = "";
+        el.style.transform = "translateY(0)";
+        return;
+      }
+
+      const newTop = el.getBoundingClientRect().top;
+      const delta = prevTop - newTop;
+
+      if (Math.abs(delta) < 1) return;
+
+      el.style.transform = `translateY(${delta}px)`;
+      el.style.transition = "none";
+      el.offsetHeight;
+      el.style.transition = "transform 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+      el.style.transform = "translateY(0)";
     });
 
-    return () => cancelAnimationFrame(showTimer);
-  }, [viewKey]);
+    prevPositions.current = new Map();
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    view.items.forEach((item, i) => {
+      timers.push(setTimeout(() => {
+        setBarWidths(prev => new Map(prev).set(item.label, item.score * 100));
+      }, 200 + i * 100));
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [showAfter]);
 
   return (
     <div className="space-y-3">
       {/* Toggle */}
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setShowAfter(false)}
+          onClick={() => handleToggle(false)}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             !showAfter
               ? "bg-red-500/20 text-red-300 border border-red-500/30"
@@ -63,7 +101,7 @@ export default function BeforeAfter({ scenario }: BeforeAfterProps) {
           pgvector
         </button>
         <button
-          onClick={() => setShowAfter(true)}
+          onClick={() => handleToggle(true)}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             showAfter
               ? "bg-green-500/20 text-green-300 border border-green-500/30"
@@ -77,23 +115,23 @@ export default function BeforeAfter({ scenario }: BeforeAfterProps) {
 
       {/* Results */}
       <div className="space-y-1.5">
-        {view.items.map((item, i) => {
+        {view.items.map((item) => {
           const dotColor = stableColor(item.label);
+          const barW = barWidths.get(item.label) ?? 0;
           return (
             <div
-              key={`${viewKey}-${i}`}
-              className={`flex items-start gap-3 px-3 py-2 rounded-lg border transition-all duration-500 ${
+              key={item.label}
+              ref={(el) => {
+                if (el) itemRefs.current.set(item.label, el);
+                else itemRefs.current.delete(item.label);
+              }}
+              className={`flex items-start gap-3 px-3 py-2 rounded-lg border transition-colors duration-400 ${
                 item.dimmed
                   ? "border-gray-800/50 bg-gray-950/30 opacity-40"
                   : item.highlight
                   ? "border-green-500/20 bg-green-500/5"
                   : "border-gray-800 bg-gray-900/50"
               }`}
-              style={{
-                opacity: rendered ? (item.dimmed ? 0.4 : 1) : 0,
-                transform: rendered ? "translateY(0)" : "translateY(8px)",
-                transition: `opacity 300ms ${i * 80}ms, transform 300ms ${i * 80}ms`,
-              }}
             >
               {/* Color tracking dot */}
               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
@@ -106,7 +144,7 @@ export default function BeforeAfter({ scenario }: BeforeAfterProps) {
                       item.dimmed ? "bg-gray-600" : item.highlight ? "bg-green-500" : "bg-blue-500"
                     }`}
                     style={{
-                      width: `${barWidths[i] ?? 0}%`,
+                      width: `${barW}%`,
                       transition: "width 500ms ease-out",
                     }}
                   />
@@ -133,13 +171,7 @@ export default function BeforeAfter({ scenario }: BeforeAfterProps) {
 
       {/* Insight */}
       {showAfter && (
-        <div
-          className="bg-indigo-500/5 border border-indigo-500/20 rounded-lg px-3 py-2"
-          style={{
-            opacity: rendered ? 1 : 0,
-            transition: `opacity 400ms ${view.items.length * 80 + 200}ms`,
-          }}
-        >
+        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-lg px-3 py-2">
           <p className="text-[11px] text-indigo-300/80 leading-relaxed">
             {scenario.insight}
           </p>

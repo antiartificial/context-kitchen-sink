@@ -6,11 +6,13 @@ import NewsroomTab from "./tabs/newsroom/NewsroomTab";
 import AgentTab from "./tabs/agent/AgentTab";
 import AuditorTab from "./tabs/auditor/AuditorTab";
 import ReplTab from "./tabs/repl/ReplTab";
+import ScenariosTab from "./tabs/scenarios/ScenariosTab";
 
-const tabs = ["Newsroom", "Agent Memory", "Auditor", "DSL REPL"] as const;
+const tabs = ["Scenarios", "Newsroom", "Agent Memory", "Auditor", "DSL REPL"] as const;
 type Tab = (typeof tabs)[number];
 
 const TAB_ICONS: Record<string, string> = {
+  Scenarios: "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z",
   Newsroom: "M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z",
   "Agent Memory": "M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
   Auditor: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
@@ -28,9 +30,29 @@ const CAPABILITIES: { title: string; subtitle: string; icon: string }[] = [
   { title: "What to learn next",    subtitle: "Prioritized investigation suggestions",         icon: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
 ];
 
+const CAP_TO_SCENARIO: Record<string, string> = {
+  "Know what, when":    "temporal",
+  "Who said it":        "credibility",
+  "What conflicts":     "contradiction",
+  "How we got here":    "provenance",
+  "How reliable":       "credibility",
+  "What's missing":     "gaps",
+  "Right to forget":    "erasure",
+  "What to learn next": "gaps",
+};
+
 export default function App() {
-  const [tab, setTab] = useState<Tab>("Newsroom");
+  const [tab, setTab] = useState<Tab>("Scenarios");
   const [showCaps, setShowCaps] = useState(true);
+  const [scenarioId, setScenarioId] = useState<string | undefined>(undefined);
+
+  const handleCapClick = (title: string) => {
+    const id = CAP_TO_SCENARIO[title];
+    if (id) {
+      setScenarioId(id);
+      setTab("Scenarios");
+    }
+  };
 
   return (
     <AuthGate>
@@ -40,13 +62,17 @@ export default function App() {
           <div className="mb-6 bg-gray-900 border border-gray-800 rounded-lg px-4 py-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {CAPABILITIES.map((cap) => (
-                <div key={cap.title} className="text-center flex flex-col items-center">
-                  <svg className="w-5 h-5 text-indigo-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <button
+                  key={cap.title}
+                  onClick={() => handleCapClick(cap.title)}
+                  className="text-center flex flex-col items-center group cursor-pointer hover:bg-gray-800/50 rounded-lg py-2 px-1 transition-colors"
+                >
+                  <svg className="w-5 h-5 text-indigo-400 mb-1 group-hover:text-indigo-300 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d={cap.icon} />
                   </svg>
-                  <div className="text-sm font-semibold text-gray-100">{cap.title}</div>
+                  <div className="text-sm font-semibold text-gray-100 group-hover:text-white transition-colors">{cap.title}</div>
                   <div className="text-[11px] text-gray-500 mt-0.5">{cap.subtitle}</div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -54,6 +80,7 @@ export default function App() {
 
         <TabBar tabs={tabs} active={tab} onChange={setTab} icons={TAB_ICONS} />
         <div className="mt-6">
+          {tab === "Scenarios" && <ScenariosTab initialScenario={scenarioId} />}
           {tab === "Newsroom" && <NewsroomTab />}
           {tab === "Agent Memory" && <AgentTab />}
           {tab === "Auditor" && <AuditorTab />}

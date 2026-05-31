@@ -67,6 +67,12 @@ func NewRouter(db *client.DB, password string) http.Handler {
 	protected.HandleFunc("POST /api/repl/parse", s.handleReplParse)
 	protected.HandleFunc("POST /api/repl/reset", s.handleReplReset)
 
+	// Current platform surface
+	protected.HandleFunc("GET /api/platform/status", s.handlePlatformStatus)
+	protected.HandleFunc("POST /api/platform/acquisition-preview", s.handlePlatformAcquisitionPreview)
+	protected.HandleFunc("GET /api/platform/acquisition-receipts", s.handlePlatformAcquisitionReceipts)
+	protected.HandleFunc("POST /api/platform/explain-rank", s.handlePlatformExplainRank)
+
 	mux.Handle("/api/", s.authMiddleware(protected))
 
 	handler := corsMiddleware(loggingMiddleware(mux))
